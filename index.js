@@ -12,12 +12,8 @@ const systemMessage = {
   content:
     "Pick the place from the coordinate\
     Generate a short story(One or Two liner) connected to this place time combinations\
-    Don't use the coordinate in the stories rather the place",
-  // Select between 20% and 80% of these hashtags as thematic influence on the story and disregard the other hashtags\
-  // Make the story dystopian or romantic or mysterious\
-  // Keep the story short in one or two line\
-  // Allow the story to take place in the past or future, hypothetical or real\
-  // Create a prompt(that can be used for a text-to-art AI) from the created story",
+    Don't use the coordinate in the stories rather the place\
+    Provide the output in a json format with Story name, description, date, time, place, coordinate",
 };
 
 // API endpoint to receive user messages and get Chatbot responses
@@ -48,7 +44,7 @@ app.post("/api/chat", async (req, res) => {
       // Handle the response data
       res.json({
         status: "Success",
-        response: response?.data?.choices?.[0]?.message?.content,
+        response: JSON.parse(response?.data?.choices?.[0]?.message?.content),
       });
     })
     .catch((error) => {
