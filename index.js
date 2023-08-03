@@ -44,7 +44,7 @@ app.post("/api/chat", async (req, res) => {
       // Handle the response data
       res.json({
         status: "Success",
-        response: JSON.parse(response?.data?.choices?.[0]?.message?.content),
+        response: response?.data?.choices?.[0]?.message?.content,
       });
     })
     .catch((error) => {
