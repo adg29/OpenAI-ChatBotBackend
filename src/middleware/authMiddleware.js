@@ -1,18 +1,19 @@
-const jwt = require('../utils/jwt');
+const jwt = require("../utils/jwt");
 
 function authMiddleware(req, res, next) {
-  const token = req.header('Authorization');
+  const token = req.header("Authorization");
 
   if (!token) {
-    return res.status(401).json({ message: 'Authorization token missing' });
+    return res.status(401).json({ message: "Authorization token missing" });
   }
 
   try {
-    const payload = jwt.verify(token);
+    const bearerToken = token.split(" ")[1];
+    const payload = jwt.verify(bearerToken);
     req.userId = payload.userId;
     next();
   } catch (error) {
-    res.status(401).json({ message: 'Invalid token' });
+    res.status(401).json({ message: "Invalid token" });
   }
 }
 
