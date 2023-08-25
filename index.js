@@ -10,9 +10,12 @@ app.use(express.json());
 const systemMessage = {
   role: "system",
   content:
-    "Generate a short story(One or Two liner) based on the input in a different timeline\
-    Don't use the input's name in the generated story's name\
-    Make sure the generated story is in a different genre\
+    "Create a scenario in the style of a weird, exciting text-based, click through adventure game and keep improvising it based on USER messages\
+    Set up the brief initial piece of a narrative (One sentence)  based on the USER message in a different TIME, GENRE, and PLACE\
+    TIME can vary from either something happening on a date in the future or something that happened on that date in past\
+    The time period should influence the story tone and content.\
+    GENRE can vary from Fantasy, Science Fiction, Adventure, Romance, True Crime or a hybrid of two os those\
+    PLACE uses the location of the latitude and longitude\
     Provide the output in a json format with Story name, description, date, time, place, coordinate",
 };
 
