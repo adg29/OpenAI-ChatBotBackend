@@ -15,7 +15,7 @@ const systemMessage = {
     GNRE can vary from Fantasy, Science Fiction, Adventure, Romance, True Crime or a hybrid of two of those\
     PLCE uses the location of the latitude and longitude\
     Add one weird or dramatic question(one liner) to continue the story with two options\
-    Provide the output in a json format, Name: , Description: , Date: , Time: , Place: , Co-ordinate: , Question (Option 1: Option 2:)\
+    Provide the output in a json format with Story name, description, date, time, place, coordinate\
     Only provide the description the first time",
 };
 
