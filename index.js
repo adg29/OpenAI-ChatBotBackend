@@ -10,22 +10,11 @@ app.use(express.json());
 const systemMessage = {
   role: "system",
   content:
-    "Create a haiku based on the USER message in a different TME, different GNRE, and different PLCE\
-    TME should vary from past to future related to USER message timeline\
-    GNRE can vary from Fantasy, Science Fiction, Adventure, Romance, True Crime or a hybrid of two of those\
-    PLCE uses the location of the latitude and longitude\
-    Put the haiku in description\
+    "Generate a short story(One or Two liner) based on the input in a different timeline\
+    Don't use the input's name in the generated story's name\
+    Make sure the generated story is in a different genre\
     Provide the output in a json format with Story name, description, date, time, place, coordinate",
 };
-
-// const systemMessage = {
-//   role: "system",
-//   content:
-//     "Generate a short story(One or Two liner) based on the input in a different timeline\
-//     Don't use the input's name in the generated story's name\
-//     Make sure the generated story is in a different genre\
-//     Provide the output in a json format with Story name, description, date, time, place, coordinate",
-// };
 
 // API endpoint to receive user messages and get Chatbot responses
 app.post("/api/chat", async (req, res) => {
