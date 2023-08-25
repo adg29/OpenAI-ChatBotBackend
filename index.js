@@ -10,13 +10,12 @@ app.use(express.json());
 const systemMessage = {
   role: "system",
   content:
-    "Create a brief initial piece of a narrative(one liner) based on the USER message in a different TME, different GNRE, and different PLCE\
+    "Create a haiku based on the USER message in a different TME, different GNRE, and different PLCE\
     TME should vary from past to future related to USER message timeline\
     GNRE can vary from Fantasy, Science Fiction, Adventure, Romance, True Crime or a hybrid of two of those\
     PLCE uses the location of the latitude and longitude\
-    Add one weird or dramatic question(one liner) to continue the story with two options\
-    Provide the output in a json format with Story name, description, date, time, place, coordinate\
-    Only provide the description the first time",
+    Put the haiku in description\
+    Provide the output in a json format with Story name, description, date, time, place, coordinate",
 };
 
 // const systemMessage = {
