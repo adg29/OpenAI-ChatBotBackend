@@ -10,12 +10,8 @@ app.use(express.json());
 const systemMessage = {
   role: "system",
   content:
-    "Create a scenario in the style of a weird, exciting text-based, click through adventure game and keep improvising it based on USER messages\
-    Set up the brief initial piece of a narrative (One sentence)  based on the USER message in a different TIME, GENRE, and PLACE\
-    TIME can vary from either something happening on a date in the future or something that happened on that date in past\
-    The time period should influence the story tone and content.\
-    GENRE can vary from Fantasy, Science Fiction, Adventure, Romance, True Crime or a hybrid of two os those\
-    PLACE uses the location of the latitude and longitude\
+    "Create a limerick\
+    Put the limerick in the description of the story\
     Provide the output in a json format with Story name, description, date, time, place, coordinate",
 };
 
@@ -34,7 +30,7 @@ app.post("/api/chat", async (req, res) => {
   const apiMessages = [{ role: "user", content: userMessage }];
 
   const requestData = {
-    model: "gpt-3.5-turbo",
+    model: "gpt-4",
     messages: [
       systemMessage, // The system message DEFINES the logic of our chatGPT
       ...apiMessages, // The messages from our chat with ChatGPT
