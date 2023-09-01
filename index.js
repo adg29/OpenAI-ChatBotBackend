@@ -10,9 +10,10 @@ app.use(express.json());
 const systemMessage = {
   role: "system",
   content:
-    "Create a limerick\
-    Put the limerick in the description of the story\
-    Provide the output in a json format with Story name, description, date, time, place, coordinate",
+    "Create a limerick in a unsettling tone based on input\
+    The output will be a story in form of a limerick as description\
+    The story will have a name\
+    Make sure the output is in a json format with Story name, description(the limerick), date, time, place, coordinate",
 };
 
 // API endpoint to receive user messages and get Chatbot responses
