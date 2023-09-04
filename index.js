@@ -31,7 +31,7 @@ app.post("/api/chat", async (req, res) => {
   const apiMessages = [{ role: "user", content: userMessage }];
 
   const requestData = {
-    model: "gpt-3.5-turbo",
+    model: "gpt-4",
     messages: [
       systemMessage, // The system message DEFINES the logic of our chatGPT
       ...apiMessages, // The messages from our chat with ChatGPT
@@ -41,15 +41,42 @@ app.post("/api/chat", async (req, res) => {
   axios
     .post(apiUrl, requestData, { headers })
     .then((response) => {
+      const content = response?.data?.choices?.[0]?.message?.content;
+      const cleanedContent = content
+        .replace(/[\n\r]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      let parsedContent;
+      try {
+        parsedContent = JSON.parse(cleanedContent);
+        for (const key in parsedContent) {
+          if (typeof parsedContent[key] === "string") {
+            parsedContent[key] = parsedContent[key]
+              .replace(/\n/g, " ")
+              .replace(/\s+/g, " ")
+              .trim();
+          }
+        }
+      } catch (err) {
+        console.error("Error in JSON parsing: ", err.message);
+        return res.status(500).json({
+          status: "Failed",
+          error: "Error in JSON parsing",
+        });
+      }
       // Handle the response data
-      res.json({
+      res.status(200).json({
         status: "Success",
-        response: JSON.parse(response?.data?.choices?.[0]?.message?.content),
+        response: parsedContent,
       });
     })
     .catch((error) => {
       // Handle errors
       console.error("Error:", error.message);
+      res.status(500).json({
+        status: "Failed",
+        error: error.message,
+      });
     });
 });
 
