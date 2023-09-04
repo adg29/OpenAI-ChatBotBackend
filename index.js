@@ -31,7 +31,7 @@ app.post("/api/chat", async (req, res) => {
   const apiMessages = [{ role: "user", content: userMessage }];
 
   const requestData = {
-    model: "gpt-4",
+    model: "gpt-3.5-turbo",
     messages: [
       systemMessage, // The system message DEFINES the logic of our chatGPT
       ...apiMessages, // The messages from our chat with ChatGPT
