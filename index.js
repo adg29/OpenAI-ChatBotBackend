@@ -11,9 +11,9 @@ const systemMessage = {
   role: "system",
   content:
     "Create a limerick in a unsettling tone based on input\
-    The output will be a story in form of a limerick as description\
-    The story will have a name\
-    Make sure the output is in a json format with Story name, description(the limerick), date, time, place, coordinate",
+    The output will have a name, description, date, time, place and coordinates\
+    Put the limerick in the desciption\
+    Make Sure the output is in a json format",
 };
 
 // API endpoint to receive user messages and get Chatbot responses
