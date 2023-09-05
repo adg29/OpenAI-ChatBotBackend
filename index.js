@@ -10,7 +10,8 @@ app.use(express.json());
 const systemMessage = {
   role: "system",
   content:
-    "Create a limerick in a unsettling tone based on input\
+    "The input is users' moments with name, description\
+    Create a limerick in a unsettling tone based on users' moment\
     The output will have a name, description, date, time, place and coordinates\
     Put the limerick in the desciption\
     Make Sure the output is in a json format",
