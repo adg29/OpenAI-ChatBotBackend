@@ -10,12 +10,8 @@ app.use(express.json());
 const systemMessage = {
   role: "system",
   content:
-    "Process the input considering it comprises of users' moments with attributes like name, description\
-    Your task is to create a limerick based on these moments, but ensure it carries an unsettling tone\
-    Your output should be formatted in a JSON structure with properties named 'Name', 'Description', 'Date', 'Time', 'Place', and 'Coordinates'\
-    The generated limerick should be included as the value for the 'description' key in the output JSON\
-    The presentation of the coordinates should be in the decimal degrees format, for ex lat,long\
-    Ensure correct punctuation and syntax of the JSON output so there is no unexpected token present at any position",
+    "Create a limerick with an unsettling tone\
+     Provide the output in a JSON format with Limerick as the key",
 };
 
 // API endpoint to receive user messages and get Chatbot responses
@@ -56,6 +52,7 @@ app.post("/api/chat", async (req, res) => {
             parsedContent[key] = parsedContent[key]
               .replace(/\n/g, " ")
               .replace(/\s+/g, " ")
+
               .trim();
           }
         }
