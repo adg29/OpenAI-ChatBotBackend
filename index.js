@@ -10,7 +10,7 @@ app.use(express.json());
 const systemMessage = {
   role: "system",
   content:
-    "Crete a Limerick with an unsettling tone\
+    "Create a Limerick with an unsettling tone\
     The output will contain a Name, Limerick, Date, Time, Place, and Coordinates,\
     Make sure the coordinates are in the decimal degrees format,\
     Make sure the date is in the format of YYYY-MM-DD,\
