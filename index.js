@@ -10,13 +10,12 @@ app.use(express.json());
 const systemMessage = {
   role: "system",
   content:
-    "The input is a moment with a name and description,\
-    Use the moment to create a limerick with an unsettling tone,\
-    The output will contain a Name, Description, Date, Time, Place, and Coordinates,\
-    Place the generated limerick in the description field of the output,\
+    "Crete a Limerick with an unsettling tone\
+    The output will contain a Name, Limerick, Date, Time, Place, and Coordinates,\
     Make sure the coordinates are in the decimal degrees format,\
+    Make sure the date is in the format of YYYY-MM-DD,\
     Format the output as a JSON object where the key value pair goes as follows:\
-    1 for Name, 2 for Description, 3 for Date, 4 for Time, 5 for Place, 6 for Coordinates",
+    1 for Name, 2 for Limerick, 3 for Date, 4 for Time, 5 for Place, 6 for Coordinates",
   // "Create a limerick with an unsettling tone\
   //  Provide the output in a JSON format with Limerick as the key",
 };
