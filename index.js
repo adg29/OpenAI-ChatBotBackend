@@ -10,8 +10,15 @@ app.use(express.json());
 const systemMessage = {
   role: "system",
   content:
-    "Create a limerick with an unsettling tone\
-     Provide the output in a JSON format with Limerick as the key",
+    "The input is a moment with a name and description,\
+    Use the moment to create a limerick with an unsettling tone,\
+    The output will contain a Name, Description, Date, Time, Place, and Coordinates,\
+    Place the generated limerick in the description field of the output,\
+    Make sure the coordinates are in the decimal degrees format,\
+    Format the output as a JSON object where the key value pair goes as follows:\
+    1 for Name, 2 for Description, 3 for Date, 4 for Time, 5 for Place, 6 for Coordinates",
+  // "Create a limerick with an unsettling tone\
+  //  Provide the output in a JSON format with Limerick as the key",
 };
 
 // API endpoint to receive user messages and get Chatbot responses
@@ -29,7 +36,7 @@ app.post("/api/chat", async (req, res) => {
   const apiMessages = [{ role: "user", content: userMessage }];
 
   const requestData = {
-    model: "gpt-4",
+    model: "gpt-3.5-turbo",
     messages: [
       systemMessage, // The system message DEFINES the logic of our chatGPT
       ...apiMessages, // The messages from our chat with ChatGPT
@@ -52,7 +59,6 @@ app.post("/api/chat", async (req, res) => {
             parsedContent[key] = parsedContent[key]
               .replace(/\n/g, " ")
               .replace(/\s+/g, " ")
-
               .trim();
           }
         }
