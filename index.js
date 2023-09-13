@@ -11,11 +11,13 @@ const systemMessage = {
   role: "system",
   content:
     "Create a Limerick with an unsettling tone\
-    The output will contain a Name, Limerick, Date, Time, Place, and Coordinates,\
+    The output will contain a Name, Limerick and two Timeline\
+    Representation of a timeline is Date, Time, Place, and Coordinates,\
+    Make sure the whole timline is a only one string,\
     Make sure the coordinates are in the decimal degrees format,\
     Make sure the date is in the format of YYYY-MM-DD,\
     Format the output as a JSON object where the key value pair goes as follows:\
-    1 for Name, 2 for Limerick, 3 for Date, 4 for Time, 5 for Place, 6 for Coordinates",
+    1 for Name, 2 for Limerick, 3 for Timeline-1, 4 for Timeline-2",
   // "Create a limerick with an unsettling tone\
   //  Provide the output in a JSON format with Limerick as the key",
 };
