@@ -17,7 +17,7 @@ const systemMessage = {
     Make sure the Coordinates are in the decimal degrees format,\
     Make sure the Date is in the format of YYYY-MM-DD,\
     Format the output as a JSON object where the key value pair goes as follows:\
-    @ for Name, $ for Limerick, & for Timeline-1, * for Timeline-2",
+    ^ for Name, ^^ for Limerick, ^^^ for Timeline-1, ^^^^ for Timeline-2",
   // "Create a limerick with an unsettling tone\
   //  Provide the output in a JSON format with Limerick as the key",
 };
