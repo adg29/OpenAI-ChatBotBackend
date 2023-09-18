@@ -13,6 +13,7 @@ const systemMessage = {
     "Create a Limerick with an unsettling tone\
     The output will contain a Name, Limerick and two Timelines\
     Representation of a Timeline is Date, Time, Place, and the Place’s Coordinates,\
+    Make sure the Name is a funny title of the Limerick,\
     Make sure the whole Timeline is only one string,\
     Make sure the Coordinates are in the decimal degrees format,\
     Make sure the Date is in the format of YYYY-MM-DD,\
