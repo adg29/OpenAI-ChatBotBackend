@@ -1,93 +1,51 @@
 const express = require("express");
-const env = require("dotenv");
 const axios = require("axios");
-
+const env = require("dotenv");
+const FormData = require("form-data");
 const app = express();
+const port = 3000; // You can change this port as needed
 
 env.config();
 app.use(express.json());
 
-const systemMessage = {
-  role: "system",
-  content:
-    "Create a Limerick with an unsettling tone\
-    The output will contain a Name, Limerick and two Timelines\
-    Representation of a Timeline is Date, Time, Place, and the Place’s Coordinates,\
-    Make sure the Name is a funny title of the Limerick,\
-    Make sure the whole Timeline is only one string,\
-    Make sure the Coordinates are in the decimal degrees format,\
-    Make sure the Date is in the format of YYYY-MM-DD,\
-    Format the output as a JSON object where the key value pair is as follows:\
-    1 for Name, 2 for Limerick, 3 for first Timeline, 4 for second Timeline",
-  // "Create a limerick with an unsettling tone\
-  //  Provide the output in a JSON format with Limerick as the key",
-};
+// Define a route to handle text-to-image requests
+app.post("/generate-image", async (req, res) => {
+  try {
+    const { text } = req.body;
 
-// API endpoint to receive user messages and get Chatbot responses
-app.post("/api/chat", async (req, res) => {
-  const userMessage = req.body.message;
+    // Check if the "text" field is missing or not a string
+    if (!text || typeof text !== "string") {
+      return res
+        .status(400)
+        .json({ error: 'Invalid input: "text" is missing or not a string' });
+    }
 
-  const apiUrl = "https://api.openai.com/v1/chat/completions";
-  const bearerToken = process.env.API_KEY;
+    // Create a FormData object to send the text to the external API
+    const form = new FormData();
+    form.append("prompt", text);
 
-  const headers = {
-    Authorization: `Bearer ${bearerToken}`,
-    "Content-Type": "application/json", // Replace with the appropriate content type
-  };
-
-  const apiMessages = [{ role: "user", content: userMessage }];
-
-  const requestData = {
-    model: "gpt-3.5-turbo",
-    messages: [
-      systemMessage, // The system message DEFINES the logic of our chatGPT
-      ...apiMessages, // The messages from our chat with ChatGPT
-    ],
-  };
-
-  axios
-    .post(apiUrl, requestData, { headers })
-    .then((response) => {
-      const content = response?.data?.choices?.[0]?.message?.content;
-      const cleanedContent = content
-        .replace(/[\n\r]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-      let parsedContent;
-      try {
-        parsedContent = JSON.parse(cleanedContent);
-        for (const key in parsedContent) {
-          if (typeof parsedContent[key] === "string") {
-            parsedContent[key] = parsedContent[key]
-              .replace(/\n/g, " ")
-              .replace(/\s+/g, " ")
-              .trim();
-          }
-        }
-      } catch (err) {
-        console.error("Error in JSON parsing: ", err.message);
-        return res.status(500).json({
-          status: "Failed",
-          error: "Error in JSON parsing",
-        });
+    // Send a POST request to the external Text to Image API
+    const response = await axios.post(
+      "https://clipdrop-api.co/text-to-image/v1",
+      form,
+      {
+        headers: {
+          "x-api-key": process.env.API_KEY,
+          ...form.getHeaders(),
+        },
+        responseType: "arraybuffer", // To get binary image data
       }
-      // Handle the response data
-      res.status(200).json({
-        status: "Success",
-        response: parsedContent,
-      });
-    })
-    .catch((error) => {
-      // Handle errors
-      console.error("Error:", error.message);
-      res.status(500).json({
-        status: "Failed",
-        error: error.message,
-      });
-    });
+    );
+
+    // Set the response headers and send the image
+    res.contentType("image/png");
+    res.send(response.data);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
-const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
