@@ -10,17 +10,10 @@ app.use(express.json());
 const systemMessage = {
   role: "system",
   content:
-    "Create a Limerick with an unsettling tone\
-    The output will contain a Name, Limerick and two Timelines\
-    Representation of a Timeline is Date, Time, Place, and the Place’s Coordinates,\
-    Make sure the Name is a funny title of the Limerick,\
-    Make sure the whole Timeline is only one string,\
-    Make sure the Coordinates are in the decimal degrees format,\
-    Make sure the Date is in the format of YYYY-MM-DD,\
-    Format the output as a JSON object where the key value pair is as follows:\
-    1 for Name, 2 for Limerick, 3 for first Timeline, 4 for second Timeline",
-  // "Create a limerick with an unsettling tone\
-  //  Provide the output in a JSON format with Limerick as the key",
+    "Use the place provided and give two interesting facts about it\
+    Then connect the Place with the Paragraph provided by telling a short story that relates to both\
+    Provide the output in json format with the following keys:\
+    1 for the first inetresting fact, 2 for the second interesting fact and 3 for the short story",
 };
 
 // API endpoint to receive user messages and get Chatbot responses
