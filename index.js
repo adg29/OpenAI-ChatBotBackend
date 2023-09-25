@@ -10,10 +10,11 @@ app.use(express.json());
 const systemMessage = {
   role: "system",
   content:
-    "Use the place provided and give two interesting facts about it\
-    Then connect the Place with the Paragraph provided by telling a short story that relates to both\
-    Provide the output in json format with the following keys:\
-    1 for the first inetresting fact, 2 for the second interesting fact and 3 for the short story",
+    "Use the place provided and state two interesting facts and a about it\
+    Make sure the facts are one liner\
+    Create a dystopian thriller Mise-en-scène\
+    Provide the output in JSON format with the following keys:\
+    1 for the first inetresting fact, 2 for the second interesting fact, 3 for the Mise-en-scène",
 };
 
 // API endpoint to receive user messages and get Chatbot responses
@@ -42,6 +43,7 @@ app.post("/api/chat", async (req, res) => {
     .post(apiUrl, requestData, { headers })
     .then((response) => {
       const content = response?.data?.choices?.[0]?.message?.content;
+      console.log("Response:", content);
       const cleanedContent = content
         .replace(/[\n\r]/g, " ")
         .replace(/\s+/g, " ")
