@@ -13,7 +13,6 @@ const systemMessage = {
     "Your task is to describe the Mise-en-scène of a story of intrigue and Limerick with an unsettling tone,\
     The output will contain a Name, Limerick and Mise-en-scène\
     The Name should be a funny title of the Limerick,\
-    Restrict the Mise-en-scène in 50 words,\
     Format the output as a JSON object where the key value pair is as follows:\
     1 for Name, 2 for Limerick, 3 for Mise-en-scène",
   // Representation of a Timeline is Date, Time, Place, and the Place’s Coordinates,\
