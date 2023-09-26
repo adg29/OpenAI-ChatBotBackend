@@ -10,12 +10,12 @@ app.use(express.json());
 const systemMessage = {
   role: "system",
   content:
-    "Create a Limerick with an unsettling tone\
-    The output will contain a Name, Limerick and Description\
-    The Description is the description of Mise-en-scène as a stroy of intrigue\
-    Make sure the Name is a funny title of the Limerick,\
+    "Your task is to describe the Mise-en-scène of a story of intrigue and Limerick with an unsettling tone,\
+    The output will contain a Name, Limerick and Mise-en-scène\
+    The Name should be a funny title of the Limerick,\
+    Restrict the Mise-en-scène in 50 words,\
     Format the output as a JSON object where the key value pair is as follows:\
-    1 for Name, 2 for Limerick, 3 for Description",
+    1 for Name, 2 for Limerick, 3 for Mise-en-scène",
   // Representation of a Timeline is Date, Time, Place, and the Place’s Coordinates,\
   // Make sure the whole Timeline is only one string,\
   // Make sure the Coordinates are in the decimal degrees format,\
