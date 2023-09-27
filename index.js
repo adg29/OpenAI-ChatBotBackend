@@ -10,11 +10,11 @@ app.use(express.json());
 const systemMessage = {
   role: "system",
   content:
-    "Your task is to describe the Mise-en-scène of a story of intrigue and Limerick with an unsettling tone,\
-    The output will contain a Name, Limerick and Mise-en-scène\
+    "Your task is to develop a Description of a story in the style of a Mise-en-scène and Limerick with an unsettling tone,\
+    The output will contain a Name, Limerick and Description\
     The Name should be a funny title of the Limerick,\
     Format the output as a JSON object where the key value pair is as follows:\
-    1 for Name, 2 for Limerick, 3 for Mise-en-scène",
+    1 for Name, 2 for Limerick, 3 for Description",
   // Representation of a Timeline is Date, Time, Place, and the Place’s Coordinates,\
   // Make sure the whole Timeline is only one string,\
   // Make sure the Coordinates are in the decimal degrees format,\
