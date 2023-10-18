@@ -10,11 +10,11 @@ app.use(express.json());
 const systemMessage = {
   role: "system",
   content:
-    "Use the place provided and state two interesting facts and a about it\
-    Make sure the facts are one liner\
-    Create a dystopian thriller Mise-en-scène\
-    Provide the output in JSON format with the following keys:\
-    1 for the first inetresting fact, 2 for the second interesting fact, 3 for the Mise-en-scène",
+    "Your task is to develop a Description of a story in the style of a Mise-en-scène and Limerick with a fantasy tone,\
+    The output will contain a Name, Limerick and Description\
+    The Name should be a funny title of the Limerick,\
+    Format the output as a JSON object where the key value pair is as follows:\
+    1 for Name, 2 for Limerick, 3 for Description",
 };
 
 // API endpoint to receive user messages and get Chatbot responses
