@@ -10,17 +10,9 @@ app.use(express.json());
 const systemMessage = {
   role: "system",
   content:
-    "Your task is to serve as a creative assistant, aiding in the imaginative and artistic process of story creation\
-    Develop a Description of a story in the style of a Mise-en-scène and Limerick with an unsettling tone,\
-    The output will contain a Name, Limerick and Description and Place\
-    The Name should be a funny title of the Limerick,\
-    The Place should be hypotheical place within 100 miles of the and follows a pattern of name and coordinates in one string\
-    Format the output as a JSON object where the key value pair is as follows:\
-    1 for Name, 2 for Limerick, 3 for Description, 4 for Place",
-  // Representation of a Timeline is Date, Time, Place, and the Place’s Coordinates,\
-  // Make sure the whole Timeline is only one string,\
-  // Make sure the Coordinates are in the decimal degrees format,\
-  // Make sure the Date is in the format of YYYY-MM-DD,\
+    "You are a narrative designer who designs unique role based on Club details and User's interest,\
+    These roles are defined with a name, attractive description which is assigned to a user.",
+  response_format: { type: "json_object" }, // Added response_format for JSON mode
 };
 
 // API endpoint to receive user messages and get Chatbot responses
@@ -32,59 +24,51 @@ app.post("/api/chat", async (req, res) => {
 
   const headers = {
     Authorization: `Bearer ${bearerToken}`,
-    "Content-Type": "application/json", // Replace with the appropriate content type
+    "Content-Type": "application/json",
   };
 
   const apiMessages = [{ role: "user", content: userMessage }];
 
   const requestData = {
-    model: "gpt-3.5-turbo",
-    messages: [
-      systemMessage, // The system message DEFINES the logic of our chatGPT
-      ...apiMessages, // The messages from our chat with ChatGPT
-    ],
+    model: "gpt-4-1106-preview", // Updated model to GPT-4 Turbo
+    messages: [systemMessage, ...apiMessages],
   };
 
-  axios
-    .post(apiUrl, requestData, { headers })
-    .then((response) => {
-      const content = response?.data?.choices?.[0]?.message?.content;
-      const cleanedContent = content
-        .replace(/[\n\r]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-      let parsedContent;
-      try {
-        parsedContent = JSON.parse(cleanedContent);
-        for (const key in parsedContent) {
-          if (typeof parsedContent[key] === "string") {
-            parsedContent[key] = parsedContent[key]
-              .replace(/\n/g, " ")
-              .replace(/\s+/g, " ")
-              .trim();
-          }
-        }
-      } catch (err) {
-        console.error("Error in JSON parsing: ", err.message);
-        return res.status(500).json({
-          status: "Failed",
-          error: "Error in JSON parsing",
-        });
-      }
-      // Handle the response data
+  try {
+    const response = await axios.post(apiUrl, requestData, { headers });
+    const content = response?.data?.choices?.[0]?.message?.content;
+    const finishReason = response?.data?.choices?.[0]?.finish_reason;
+
+    if (finishReason === "length") {
+      return res.status(200).json({
+        status: "Partial",
+        response:
+          "Output exceeded token limit or conversation exceeded token limit.",
+      });
+    }
+
+    let parsedContent;
+    try {
+      parsedContent = JSON.parse(content);
+      // Handle parsed JSON content here
       res.status(200).json({
         status: "Success",
         response: parsedContent,
       });
-    })
-    .catch((error) => {
-      // Handle errors
-      console.error("Error:", error.message);
+    } catch (err) {
+      console.error("Error in JSON parsing: ", err.message);
       res.status(500).json({
         status: "Failed",
-        error: error.message,
+        error: "Error in JSON parsing",
       });
+    }
+  } catch (error) {
+    console.error("Error:", error.message);
+    res.status(500).json({
+      status: "Failed",
+      error: error.message,
     });
+  }
 });
 
 const port = process.env.PORT || 3000;
