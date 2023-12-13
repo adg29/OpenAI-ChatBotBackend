@@ -1,90 +1,74 @@
 const express = require("express");
 const env = require("dotenv");
-const axios = require("axios");
+const { default: OpenAI } = require("openai");
 
 const app = express();
 
 env.config();
 app.use(express.json());
 
+const openai = new OpenAI();
+
 const systemMessage = {
   role: "system",
   content:
-    "Your task is to serve as a creative assistant, aiding in the imaginative and artistic process of story creation\
-    Develop a Description of a story in the style of a Mise-en-scène and Limerick with an unsettling tone,\
-    The output will contain a Name, Limerick and Description and Place\
-    The Name should be a funny title of the Limerick,\
-    The Place should be hypotheical place within 100 miles of the and follows a pattern of name and coordinates in one string\
-    Format the output as a JSON object where the key value pair is as follows:\
-    1 for Name, 2 for Limerick, 3 for Description, 4 for Place",
-  // Representation of a Timeline is Date, Time, Place, and the Place’s Coordinates,\
-  // Make sure the whole Timeline is only one string,\
-  // Make sure the Coordinates are in the decimal degrees format,\
-  // Make sure the Date is in the format of YYYY-MM-DD,\
+    "Your task is to develop a Description of a story in the style of a Mise-en-scène and Limerick with an unsettling tone, \
+    The output will contain a Name, Limerick and Description \
+    The Name should be a funny title of the Limerick, \
+    Format the output as a JSON object where the key value pair is as follows: \
+    1 for Name, 2 for Limerick, 3 for Description",
 };
 
-// API endpoint to receive user messages and get Chatbot responses
 app.post("/api/chat", async (req, res) => {
   const userMessage = req.body.message;
 
-  const apiUrl = "https://api.openai.com/v1/chat/completions";
-  const bearerToken = process.env.API_KEY;
+  // const apiUrl = "https://api.openai.com/v1/chat/completions";
+  const bearerToken = process.env.OPENAI_API_KEY;
 
   const headers = {
     Authorization: `Bearer ${bearerToken}`,
-    "Content-Type": "application/json", // Replace with the appropriate content type
+    "Content-Type": "application/json",
   };
 
   const apiMessages = [{ role: "user", content: userMessage }];
 
   const requestData = {
-    model: "gpt-3.5-turbo",
-    messages: [
-      systemMessage, // The system message DEFINES the logic of our chatGPT
-      ...apiMessages, // The messages from our chat with ChatGPT
-    ],
+    model: "gpt-4-1106-preview",
+    messages: [systemMessage, ...apiMessages],
   };
 
-  axios
-    .post(apiUrl, requestData, { headers })
-    .then((response) => {
-      const content = response?.data?.choices?.[0]?.message?.content;
-      const cleanedContent = content
-        .replace(/[\n\r]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-      let parsedContent;
-      try {
-        parsedContent = JSON.parse(cleanedContent);
-        for (const key in parsedContent) {
-          if (typeof parsedContent[key] === "string") {
-            parsedContent[key] = parsedContent[key]
-              .replace(/\n/g, " ")
-              .replace(/\s+/g, " ")
-              .trim();
-          }
-        }
-      } catch (err) {
-        console.error("Error in JSON parsing: ", err.message);
-        return res.status(500).json({
-          status: "Failed",
-          error: "Error in JSON parsing",
-        });
-      }
-      // Handle the response data
-      res.status(200).json({
-        status: "Success",
-        response: parsedContent,
-      });
-    })
-    .catch((error) => {
-      // Handle errors
-      console.error("Error:", error.message);
-      res.status(500).json({
-        status: "Failed",
-        error: error.message,
-      });
+  try {
+    const response = await openai.chat.completions.create(requestData);
+    let content = response.choices[0].message.content;
+
+    // Remove non-JSON elements ("```json") from the content
+    content = content.replace(/^```json\s+/, "").replace(/\s+```$/, "");
+
+    console.log("Received content:", content);
+
+    // Parse the JSON content within the response
+    const parsedResponse = JSON.parse(content);
+
+    // Format the output for better readability
+    const formattedOutput = {
+      status: "Success",
+      response: {
+        Name: parsedResponse["1"],
+        Limerick: parsedResponse["2"]
+          .replace(/^\n\s+/, "")
+          .replace(/\s+\n$/, ""),
+        Description: parsedResponse["3"],
+      },
+    };
+
+    res.status(200).json(formattedOutput);
+  } catch (error) {
+    console.error("Error:", error.message);
+    res.status(500).json({
+      status: "Failed",
+      error: error.message,
     });
+  }
 });
 
 const port = process.env.PORT || 3000;
