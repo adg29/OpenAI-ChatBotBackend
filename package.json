@@ -11,7 +11,12 @@
     "axios": "^1.6.2",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "openai": "^4.21.0"
+    "express-fileupload": "^1.4.3",
+    "file-type": "^16.5.3",
+    "nft.storage": "^7.1.1",
+    "nodemon": "^3.0.2",
+    "openai": "^4.21.0",
+    "web3.storage": "^4.5.5"
   },
   "keywords": [],
   "description": ""
