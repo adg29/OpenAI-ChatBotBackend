@@ -56,7 +56,6 @@ const storeImageNFT = async (imageBuffer, name, description) => {
       name,
       description,
     });
-
     return result.url;
   } catch (error) {
     throw new Error("IPFS upload failed");
@@ -107,7 +106,7 @@ app.post("/api/process", async (req, res) => {
         roleDescription
       );
 
-      res.status(200).json({ ipfsUrl });
+      res.status(200).json({ ipfsUrl, roleName, roleDescription });
 
       console.log("Image Uploaded to IPFS Successfully");
     } else {
