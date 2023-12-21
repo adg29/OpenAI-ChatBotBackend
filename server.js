@@ -5,6 +5,24 @@ const FormData = require("form-data");
 const { OpenAI } = require("openai");
 const env = require("dotenv");
 const { fromBuffer } = require("file-type");
+// const { create } = require("ipfs-http-client");
+
+// const auth =
+//   "Basic" + Buffer.from("projectId" + ":" + "secret").toString("base64");
+
+// const ipfsClient = create({
+//   host: "ipfs.infura.io",
+//   port: 5001,
+//   protocol: "https",
+//   headers: { authorization: auth },
+// });
+
+// const getData = async (ipfsUrl) => {
+//   let ipfs = await ipfsClient();
+//   let data = ipfs.get(ipfsUrl);
+//   console.log(data);
+//   // return ipfs.get(ipfsUrl);
+// };
 
 env.config();
 
@@ -62,6 +80,12 @@ const storeImageNFT = async (imageBuffer, name, description) => {
   }
 };
 
+// const getData = async (ipfsUrl) => {
+//   let ipfs = await ipfsClient;
+//   let data = ipfs.get(ipfsUrl);
+//   return data;
+// };
+
 app.post("/api/process", async (req, res) => {
   const userMessage = req.body.message;
 
@@ -94,8 +118,6 @@ app.post("/api/process", async (req, res) => {
       const { roleName, roleDescription } =
         JSON.parse(choices[0].message.content) || {};
 
-      // console.log({ roleName, roleDescription });
-
       console.log("Generating Image");
       const generatedImage = await generateImage(roleName);
       console.log("Image Generated");
@@ -106,7 +128,14 @@ app.post("/api/process", async (req, res) => {
         roleDescription
       );
 
-      res.status(200).json({ ipfsUrl, roleName, roleDescription });
+      // Encode the generated image buffer to base64
+      const base64Image = Buffer.from(generatedImage).toString("base64");
+
+      res
+        .status(200)
+        .json({ ipfsUrl, roleName, roleDescription, image: base64Image });
+
+      console.log(res);
 
       console.log("Image Uploaded to IPFS Successfully");
     } else {
