@@ -5,24 +5,6 @@ const FormData = require("form-data");
 const { OpenAI } = require("openai");
 const env = require("dotenv");
 const { fromBuffer } = require("file-type");
-// const { create } = require("ipfs-http-client");
-
-// const auth =
-//   "Basic" + Buffer.from("projectId" + ":" + "secret").toString("base64");
-
-// const ipfsClient = create({
-//   host: "ipfs.infura.io",
-//   port: 5001,
-//   protocol: "https",
-//   headers: { authorization: auth },
-// });
-
-// const getData = async (ipfsUrl) => {
-//   let ipfs = await ipfsClient();
-//   let data = ipfs.get(ipfsUrl);
-//   console.log(data);
-//   // return ipfs.get(ipfsUrl);
-// };
 
 env.config();
 
@@ -74,17 +56,11 @@ const storeImageNFT = async (imageBuffer, name, description) => {
       name,
       description,
     });
-    return result.url;
+    return { metadataUrl: result.url, metadataContent: result.data };
   } catch (error) {
     throw new Error("IPFS upload failed");
   }
 };
-
-// const getData = async (ipfsUrl) => {
-//   let ipfs = await ipfsClient;
-//   let data = ipfs.get(ipfsUrl);
-//   return data;
-// };
 
 app.post("/api/process", async (req, res) => {
   const userMessage = req.body.message;
@@ -122,20 +98,20 @@ app.post("/api/process", async (req, res) => {
       const generatedImage = await generateImage(roleName);
       console.log("Image Generated");
 
-      const ipfsUrl = await storeImageNFT(
+      const { metadataUrl, metadataContent } = await storeImageNFT(
         generatedImage,
         roleName,
         roleDescription
       );
 
-      // Encode the generated image buffer to base64
-      const base64Image = Buffer.from(generatedImage).toString("base64");
+      const imageUrl = `https://ipfs.io/ipfs/${metadataContent.image.hostname}${metadataContent.image.pathname}`;
 
-      res
-        .status(200)
-        .json({ ipfsUrl, roleName, roleDescription, image: base64Image });
-
-      console.log(res);
+      res.status(200).json({
+        ipfsUrl: metadataUrl,
+        roleName,
+        roleDescription,
+        image: imageUrl,
+      });
 
       console.log("Image Uploaded to IPFS Successfully");
     } else {
