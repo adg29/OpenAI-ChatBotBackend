@@ -106,8 +106,14 @@ app.post("/api/process", async (req, res) => {
 
       const imageUrl = `https://ipfs.io/ipfs/${metadataContent.image.hostname}${metadataContent.image.pathname}`;
 
+      // Replacing 'ipfs://' with 'https://ipfs.io/ipfs/'
+      const updatedUrl = metadataUrl.replace(
+        "ipfs://",
+        "https://ipfs.io/ipfs/"
+      );
+
       res.status(200).json({
-        ipfsUrl: metadataUrl,
+        ipfsUrl: updatedUrl,
         roleName,
         roleDescription,
         image: imageUrl,
