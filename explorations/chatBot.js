@@ -7,22 +7,24 @@ const app = express();
 env.config();
 app.use(express.json());
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = new OpenAI();
 
 const systemMessage = {
   role: "system",
   content:
-    'You are a narrative designer who designs Mise-en-scène and Limerick,\
-    Make sure to generate the Limerick in unsettling tone,\
-    The output will contain a Name, Limerick and Description\
-    The Name should be a title of the limerick that describes what takes place in the limerick\
-    Provide the output in JSON structure like this {"1": "<The name>", "2": "<The Limerick>", "3": "<The Mise-en-scène>"}',
+    "You are a narrative designer who designs unique role based on Club details and User's interest,\
+     These roles are defined with a name, attractive description which is assigned to a user.",
 };
 
 app.post("/api/chat", async (req, res) => {
   const userMessage = req.body.message;
+
+  const bearerToken = process.env.OPENAI_API_KEY;
+
+  const headers = {
+    Authorization: `Bearer ${bearerToken}`,
+    "Content-Type": "application/json",
+  };
 
   const apiMessages = [{ role: "user", content: userMessage }];
 
@@ -34,12 +36,11 @@ app.post("/api/chat", async (req, res) => {
 
   try {
     const response = await openai.chat.completions.create(requestData);
-    console.log("OpenAI API Call", response);
-    const choices = response.choices;
-    if (response && response.choices && response.choices.length > 0) {
-      const content = JSON.parse(choices[0].message.content) || {};
-      console.log(content);
-    }
+    let content = response.choices[0].message.content;
+
+    let parsedContent = JSON.parse(content);
+
+    console.log("Received content:", parsedContent);
 
     res.status(200).json(content);
   } catch (error) {
