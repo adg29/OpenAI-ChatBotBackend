@@ -104,12 +104,18 @@ app.post("/api/process", async (req, res) => {
         roleDescription
       );
 
-      const imageUrl = `https://ipfs.io/ipfs/${metadataContent.image.hostname}${metadataContent.image.pathname}`;
+      //const imageUrl = `https://ipfs.io/ipfs/${metadataContent.image.hostname}${metadataContent.image.pathname}`;
+      const imageUrl = `https://nftstorage.link/ipfs/${metadataContent.image.hostname}${metadataContent.image.pathname}`;
 
+      // // Replacing 'ipfs://' with 'https://ipfs.io/ipfs/'
+      // const updatedUrl = metadataUrl.replace(
+      //   "ipfs://",
+      //   "https://ipfs.io/ipfs/"
+      // );
       // Replacing 'ipfs://' with 'https://ipfs.io/ipfs/'
       const updatedUrl = metadataUrl.replace(
         "ipfs://",
-        "https://ipfs.io/ipfs/"
+        "https://nftstorage.link/ipfs/"
       );
 
       res.status(200).json({
