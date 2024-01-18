@@ -17,6 +17,7 @@ const systemMessage = {
     Make sure to generate the Limerick in an unsettling tone, \
     The output will contain a Name, Limerick, and Description. \
     The Name should be a title of the limerick that describes what takes place in the limerick. \
+    Mkae sure the Mise-en-scène is a short paragraph. \
     Provide the output in JSON structure like this {"1": "<The name>", "2": "<The Limerick>", "3": "<The Mise-en-scène>"}',
 };
 
