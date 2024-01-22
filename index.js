@@ -13,12 +13,11 @@ const openai = new OpenAI({
 const systemMessage = {
   role: "system",
   content:
-    'You are a narrative designer who designs Mise-en-scène and Limerick, \
-    Make sure to generate the Limerick in an unsettling tone, \
-    The output will contain a Name, Limerick, and Description. \
-    The Name should be a title of the limerick that describes what takes place in the limerick. \
-    Make sure the Mise-en-scène is not more than 50 words. \
-    Provide the output in JSON structure like this {"1": "<The name>", "2": "<The Limerick>", "3": "<The Mise-en-scène>"}',
+    'You are a narrative designer who designs post and a fortune cookie message using user input\
+  Make sure the caption is short, tweet-sized one-sentence plot points to flesh out an existing storyline\
+  Make sure that fortune cookie message in the format of social post like instagram with a limit of 60 words\
+  Assign a catchy name to this post\
+  Provide the output in JSON structure like this {"1": "<name>", "2": "<caption>", "3": "<social-post>"}',
 };
 
 app.post("/api/chat", async (req, res) => {
