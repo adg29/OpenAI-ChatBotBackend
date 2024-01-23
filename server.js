@@ -69,8 +69,11 @@ app.post("/api/process", async (req, res) => {
     const systemMessage = {
       role: "system",
       content:
-        'You are a narrative designer who designs unique roles based on Club details and User interests.\
-        These roles are defined with a name and an attractive description assigned to a user.\
+        'You are a narrative designer who designs unique roles based on Club details and User interests\
+        Describe their role incorporating the chosen interests without naming them explicitly\
+        Do not use the following words: "fantasy, comedy, nature, time travel, cats, horror, true crime, sports, dogs, pop stars, travel, history, romcom, video games, anime, blockchain, asmr, cottagecore"\
+        Use a few emojis in output\
+        These roles are defined with a name and an attractive description assigned to a user\
         Provide the output in JSON structure like this {"roleName": "<The name of the role>", "roleDescription": "<The descritpion of the role>"}',
     };
 
