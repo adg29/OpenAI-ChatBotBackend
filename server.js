@@ -74,7 +74,8 @@ app.post("/api/process", async (req, res) => {
         Do not use the following words: "fantasy, comedy, nature, time travel, cats, horror, true crime, sports, dogs, pop stars, travel, history, romcom, video games, anime, blockchain, asmr, cottagecore"\
         Use a few emojis in output\
         These roles are defined with a name and an attractive description assigned to a user\
-        Provide the output in JSON structure like this {"roleName": "<The name of the role>", "roleDescription": "<The descritpion of the role>"}',
+        Create an image for the role, limit it in one line\
+        Provide the output in JSON structure like this {"roleName": "<The name of the role>", "roleDescription": "<The descritpion of the role>",  "imageDes" : "<The image>"}',
     };
 
     const apiMessages = [{ role: "user", content: userMessage }];
@@ -94,28 +95,22 @@ app.post("/api/process", async (req, res) => {
     // Access the choices array from the response and extract message content
     const choices = response.choices;
     if (response && response.choices && response.choices.length > 0) {
-      const { roleName, roleDescription } =
+      const { roleName, roleDescription, imageDes } =
         JSON.parse(choices[0].message.content) || {};
 
       console.log("Generating Image");
-      const generatedImage = await generateImage(roleName);
+      const generatedImage = await generateImage(imageDes);
       console.log("Image Generated");
 
       const { metadataUrl, metadataContent } = await storeImageNFT(
         generatedImage,
         roleName,
-        roleDescription
+        roleDescription,
+        imageDes
       );
 
       //const imageUrl = `https://ipfs.io/ipfs/${metadataContent.image.hostname}${metadataContent.image.pathname}`;
       const imageUrl = `https://nftstorage.link/ipfs/${metadataContent.image.hostname}${metadataContent.image.pathname}`;
-
-      // // Replacing 'ipfs://' with 'https://ipfs.io/ipfs/'
-      // const updatedUrl = metadataUrl.replace(
-      //   "ipfs://",
-      //   "https://ipfs.io/ipfs/"
-      // );
-      // Replacing 'ipfs://' with 'https://ipfs.io/ipfs/'
       const updatedUrl = metadataUrl.replace(
         "ipfs://",
         "https://nftstorage.link/ipfs/"
@@ -125,6 +120,7 @@ app.post("/api/process", async (req, res) => {
         ipfsUrl: updatedUrl,
         roleName,
         roleDescription,
+        imageDes,
         image: imageUrl,
       });
 
