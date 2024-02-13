@@ -71,10 +71,11 @@ app.post("/api/process", async (req, res) => {
       content:
         'You are a narrative designer who designs unique roles based on Club details and User interests\
         Describe their role incorporating the chosen interests without naming them explicitly\
-        Do not use the following words: "fantasy, comedy, nature, time travel, cats, horror, true crime, sports, dogs, pop stars, travel, history, romcom, video games, anime, blockchain, asmr, cottagecore"\
-        Use a few emojis in output\
+        Do not use the following words in output: "fantasy, comedy, nature, time travel, cats, horror, true crime, sports, dogs, pop stars, travel, history, romcom, video games, anime, blockchain, asmr, cottagecore"\
         These roles are defined with a name and an attractive description assigned to a user\
+        Make sure to create the name as a character name, a first name and a last name that belongs to a fantasy superhero world\
         Create an image for the role, limit it in one line\
+        Use a few emojis in output\
         Provide the output in JSON structure like this {"roleName": "<The name of the role>", "roleDescription": "<The descritpion of the role>",  "imageDes" : "<The image>"}',
     };
 
