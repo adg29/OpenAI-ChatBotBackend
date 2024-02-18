@@ -42,6 +42,12 @@ app.post("/generate-image", async (req, res) => {
     res.send(response.data);
   } catch (error) {
     console.error(error);
+    if (error.response.status === 401) {
+      return res.status(401).json({ error: "Unauthorized request" });
+    }
+    if (error.response.status === 429) {
+      return res.status(429).json({ error: "Unacceptable input" });
+    }
     res.status(500).json({ error: "Internal server error" });
   }
 });
