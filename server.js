@@ -131,6 +131,9 @@ app.post("/api/process", async (req, res) => {
     }
   } catch (error) {
     console.log(error);
+    if (error.response.status === 429) {
+      return res.status(429).json({ error: "Exceeded current quota" });
+    }
     res.status(500).json({ error: error.message });
   }
 });
