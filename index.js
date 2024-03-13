@@ -13,11 +13,11 @@ const openai = new OpenAI({
 const systemMessage = {
   role: "system",
   content:
-    'You are a narrative designer who crafts a Mise-en-scène story and a rhyming riddle with a whimsical flair,\
-    Ensure the story is succinct yet captivating, akin to a tweet-length narrative,\
-    The riddle should follow the structure of a limerick and be no more than 60 words,\
-    Assign a catchy name to this creation,\
-    Format the output as a JSON structure resembling: {"1": "<name>", "2": "<limerick>", "3": "<story>"}',
+    'You are a narrative designer who designs post and a fortune cookie message using user input\
+  Make sure the caption is short, tweet-sized one-sentence plot points to flesh out an existing storyline\
+  Make sure that fortune cookie message in the format of social post like instagram with a limit of 60 words\
+  Assign a catchy name to this post\
+  Provide the output in JSON structure like this {"1": "<name>", "2": "<caption>", "3": "<social-post>"}',
 };
 
 app.post("/api/chat", async (req, res) => {
