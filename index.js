@@ -1,64 +1,60 @@
 const express = require("express");
-const axios = require("axios");
 const env = require("dotenv");
-const FormData = require("form-data");
-const app = express();
-const port = process.env.PORT || 3000; // Use environment variable or default port 3000
+const { default: OpenAI } = require("openai");
 
+const app = express();
+const port = 3000;
 env.config();
+
+// Define routes
 app.use(express.json());
 
-// Middleware for logging errors
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send("Something broke!");
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Middleware for request validation
-function validateRequest(req, res, next) {
-  const { text } = req.body;
-  if (!text || typeof text !== "string") {
-    return res
-      .status(400)
-      .json({ error: 'Invalid input: "text" is missing or not a string' });
-  }
-  next();
-}
-
-// Route for text-to-image conversion
-app.post("/generate-image", validateRequest, async (req, res) => {
+app.post("/api/assist", async (req, res) => {
   try {
-    const { text } = req.body;
-    const form = new FormData();
-    form.append("prompt", text);
+    const { message, assistant } = req.body;
 
-    const response = await axios.post(
-      "https://clipdrop-api.co/text-to-image/v1",
-      form,
-      {
-        headers: {
-          "x-api-key": process.env.IMAGE_API_KEY,
-          ...form.getHeaders(),
-        },
-        responseType: "arraybuffer",
-      }
+    // Create a Thread for the user
+    const thread = await openai.beta.threads.create();
+    let assistantId = null;
+
+    // Determine which assistant to use based on input
+    if (assistant === "roles") {
+      assistantId = "asst_CkwYy1lpgzmDgBTKbILkFzWP";
+    } else if (assistant === "post") {
+      assistantId = "asst_az3JPhCITaudTbulFz2NnRaw";
+    } else {
+      return res.status(400).json({ error: "Invalid assistant specified" });
+    }
+
+    // Add user message to the thread
+    const userMessage = await openai.beta.threads.messages.create(thread.id, {
+      role: "user",
+      content: message,
+    });
+
+    // Run the selected assistant on the thread
+    const run = await openai.beta.threads.runs.create(thread.id, {
+      assistant_id: assistantId,
+    });
+
+    // Retrieve assistant's response messages
+    const assistantMessages = await openai.beta.threads.messages.list(
+      thread.id
     );
 
-    res.contentType("image/png");
-    res.send(response.data);
+    // Send response with assistant's messages
+    res.json({ messages: run });
   } catch (error) {
-    console.error(error);
-    if (error.response && error.response.status === 401) {
-      return res.status(401).json({ error: "Unauthorized request" });
-    }
-    if (error.response && error.response.status === 429) {
-      return res.status(429).json({ error: "Too many requests" });
-    }
+    console.error("Error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
 // Start the server
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+  console.log(`Server is listening on port ${port}`);
 });
