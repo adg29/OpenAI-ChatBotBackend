@@ -15,19 +15,21 @@ const openai = new OpenAI({
 
 app.post("/api/assist", async (req, res) => {
   try {
-    const { message, assistant } = req.body;
+    const { message, assistant, threadId } = req.body;
 
-    // Create a Thread for the user
-    const thread = await openai.beta.threads.create();
-    let assistantId = null;
+    let thread;
+    let createdNewThread = false;
 
-    // Determine which assistant to use based on input
-    if (assistant === "roles") {
-      assistantId = "asst_CkwYy1lpgzmDgBTKbILkFzWP";
-    } else if (assistant === "post") {
-      assistantId = "asst_az3JPhCITaudTbulFz2NnRaw";
-    } else {
-      return res.status(400).json({ error: "Invalid assistant specified" });
+    // If threadId is provided, use existing thread, otherwise create a new thread
+    if (!threadId) {
+      thread = await openai.beta.threads.create();
+      console.log("New thread created with ID:", thread.id);
+      createdNewThread = true;
+    }
+
+    // If threadId is provided and it's not a new thread, use the provided threadId
+    if (threadId && !createdNewThread) {
+      thread = { id: threadId }; // Dummy object with threadId for compatibility with existing code
     }
 
     // Add user message to the thread
@@ -37,6 +39,11 @@ app.post("/api/assist", async (req, res) => {
     });
 
     // Run the selected assistant on the thread
+    const assistantId =
+      assistant === "roles"
+        ? process.env.ROLES_ASSISTANT
+        : process.env.POSTS_ASSISTANT;
+
     const run = await openai.beta.threads.runs.create(thread.id, {
       assistant_id: assistantId,
     });
@@ -46,8 +53,25 @@ app.post("/api/assist", async (req, res) => {
       thread.id
     );
 
+    // Assuming assistantMessages is the JSON object containing the assistant response
+    // Filter out messages where the role is "assistant"
+    const assistantMessagesFiltered = assistantMessages.body.data.filter(
+      (message) => message.role === "assistant"
+    );
+
+    // Extract the "value" field from the latest assistant message
+    const latestAssistantValue =
+      assistantMessagesFiltered[0].content[0].text.value;
+
     // Send response with assistant's messages
-    res.json({ messages: run });
+    res.json({
+      threadId: thread.id,
+      userMessage,
+      assitantResponse: latestAssistantValue,
+      runResponse: run,
+    });
+
+    console.log("done!");
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Internal server error" });
