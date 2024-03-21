@@ -60,14 +60,16 @@ app.post("/api/assist", async (req, res) => {
     );
 
     // Extract the "value" field from the latest assistant message
-    const latestAssistantValue =
-      assistantMessagesFiltered[0].content[0].text.value;
+    const latestAssistantValue = assistantMessagesFiltered[0]
+      ? assistantMessagesFiltered[0].content[0].text.value
+      : "No assistant response available";
 
     // Send response with assistant's messages
     res.json({
       threadId: thread.id,
       userMessage,
-      assitantResponse: latestAssistantValue,
+      assistantMessages,
+      assistantResponse: latestAssistantValue,
       runResponse: run,
     });
 
