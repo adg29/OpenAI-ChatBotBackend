@@ -1,5 +1,6 @@
 const express = require("express");
 const env = require("dotenv");
+const { promisify } = require("util");
 const { default: OpenAI } = require("openai");
 
 const app = express();
@@ -44,9 +45,15 @@ app.post("/api/assist", async (req, res) => {
         ? process.env.ROLES_ASSISTANT
         : process.env.POSTS_ASSISTANT;
 
-    const run = await openai.beta.threads.runs.create(thread.id, {
+    let run = await openai.beta.threads.runs.create(thread.id, {
       assistant_id: assistantId,
     });
+
+    const sleep = promisify(setTimeout);
+    while (run.status === "queued" || run.status === "in_progress") {
+      await sleep(500); // Wait for 0.5 seconds
+      run = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+    }
 
     // Retrieve assistant's response messages
     const assistantMessages = await openai.beta.threads.messages.list(
@@ -76,6 +83,7 @@ app.post("/api/assist", async (req, res) => {
     console.log("done!");
   } catch (error) {
     console.error("Error:", error);
+    console.log("error", JSON.stringify(error));
     res.status(500).json({ error: "Internal server error" });
   }
 });
