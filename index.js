@@ -3,12 +3,62 @@ const env = require("dotenv");
 const { promisify } = require("util");
 const { default: OpenAI } = require("openai");
 
-const app = express();
-const port = 3000;
+const axios = require("axios");
+const { NFTStorage, File } = require("nft.storage");
+const FormData = require("form-data");
+const { fromBuffer } = require("file-type");
+
 env.config();
+
+const app = express();
+const port = process.env.PORT || 3000;
 
 // Define routes
 app.use(express.json());
+
+// Image generation function
+const generateImage = async (text) => {
+  try {
+    const form = new FormData();
+    form.append("prompt", text);
+
+    const response = await axios.post(
+      "https://clipdrop-api.co/text-to-image/v1",
+      form,
+      {
+        headers: {
+          "x-api-key": process.env.IMAGE_API_KEY,
+          ...form.getHeaders(),
+        },
+        responseType: "arraybuffer", // To get binary image data
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.log("generateImage error", error);
+    throw new Error("Image generation failed");
+  }
+};
+
+// IPFS upload function
+const storeImageNFT = async (imageBuffer, name, description) => {
+  try {
+    const fileType = await fromBuffer(imageBuffer);
+    const image = new File([imageBuffer], "temp.jpg", { type: fileType?.mime });
+
+    console.log("File", image);
+
+    const nftstorage = new NFTStorage({ token: process.env.NFT_STORAGE_KEY });
+    const result = await nftstorage.store({
+      image,
+      name,
+      description,
+    });
+    return { metadataUrl: result.url, metadataContent: result.data };
+  } catch (error) {
+    throw new Error("IPFS upload failed");
+  }
+};
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -73,6 +123,32 @@ app.post("/api/assist", async (req, res) => {
       ? JSON.parse(assistantMessagesFiltered[0].content[0].text.value)
       : "No assistant response available";
 
+    // console.log(`Description : ${latestAssistantValue.roleDescription}`);
+    // console.log(`ImageDescription : ${latestAssistantValue.imageDes}`);
+    // console.log(`Name : ${req.body.message}`);
+    // const ImageDes = latestAssistantValue.imageDes;
+    // const name = req.body.message;
+    // const description = latestAssistantValue;
+
+    // console.log("Generating Image");
+    // const generatedImage = await generateImage(ImageDes);
+    // console.log("Image Generated");
+
+    // console.log("Uploading to IPFS");
+    // const { metadataUrl, metadataContent } = await storeImageNFT(
+    //   generatedImage,
+    //   name,
+    //   description,
+    //   ImageDes
+    // );
+    // console.log("Uploaded");
+
+    // const imageUrl = `https://nftstorage.link/ipfs/${metadataContent.image.hostname}${metadataContent.image.pathname}`;
+    // const updatedUrl = metadataUrl.replace(
+    //   "ipfs://",
+    //   "https://nftstorage.link/ipfs/"
+    // );
+
     // Modify the response object before sending it
     const modifiedResponse = {
       threadId: thread.id,
@@ -80,15 +156,17 @@ app.post("/api/assist", async (req, res) => {
       assistantResponse: latestAssistantValue,
       runStatus: run.status,
       runUsage: run.usage,
+      // ipfsUrl: updatedUrl,
+      // image: imageUrl
     };
-
-    // Send the modified response
-    res.json(modifiedResponse);
 
     // Log the modified response
     console.log("Modified Response:", modifiedResponse);
 
-    console.log("Job Done!");
+    // Send the modified response
+    res.json(modifiedResponse);
+
+    console.log("All Jobs Done!");
   } catch (error) {
     console.error("Error:", error);
     console.log("error", JSON.stringify(error));
