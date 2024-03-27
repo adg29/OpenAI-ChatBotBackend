@@ -31,6 +31,7 @@ app.post("/api/assist", async (req, res) => {
     // If threadId is provided and it's not a new thread, use the provided threadId
     if (threadId && !createdNewThread) {
       thread = { id: threadId }; // Dummy object with threadId for compatibility with existing code
+      console.log(`ThreadID : ${threadId}`);
     }
 
     // Add user message to the thread
@@ -44,6 +45,7 @@ app.post("/api/assist", async (req, res) => {
       assistant === "roles"
         ? process.env.ROLES_ASSISTANT
         : process.env.POSTS_ASSISTANT;
+    console.log(`AssistantID : ${assistantId}`);
 
     let run = await openai.beta.threads.runs.create(thread.id, {
       assistant_id: assistantId,
@@ -68,19 +70,25 @@ app.post("/api/assist", async (req, res) => {
 
     // Extract the "value" field from the latest assistant message
     const latestAssistantValue = assistantMessagesFiltered[0]
-      ? assistantMessagesFiltered[0].content[0].text.value
+      ? JSON.parse(assistantMessagesFiltered[0].content[0].text.value)
       : "No assistant response available";
 
-    // Send response with assistant's messages
-    res.json({
+    // Modify the response object before sending it
+    const modifiedResponse = {
       threadId: thread.id,
-      userMessage,
-      assistantMessages,
+      userMessage: req.body.message, // Extract user message directly from the request body
       assistantResponse: latestAssistantValue,
-      runResponse: run,
-    });
+      runStatus: run.status,
+      runUsage: run.usage,
+    };
 
-    console.log("done!");
+    // Send the modified response
+    res.json(modifiedResponse);
+
+    // Log the modified response
+    console.log("Modified Response:", modifiedResponse);
+
+    console.log("Job Done!");
   } catch (error) {
     console.error("Error:", error);
     console.log("error", JSON.stringify(error));
