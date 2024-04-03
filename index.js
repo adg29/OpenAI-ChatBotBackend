@@ -159,14 +159,16 @@ app.post("/api/assist", async (req, res) => {
     console.log(`UserInput : ${req.body.message}`);
     console.log(`Name : ${latestAssistantValue.op1}`);
     console.log(`Description : ${latestAssistantValue.op2}`);
-    console.log(`ImageDescription : ${latestAssistantValue.op3}`);
+    console.log(`ImageDescription : ${latestAssistantValue.op0}`);
     const name = latestAssistantValue.op1;
     // condition because of posts assistant consists op3 too
     const description = latestAssistantValue.op3
       ? latestAssistantValue.op2 + latestAssistantValue.op3
       : latestAssistantValue.op2;
 
-    const ImageDes = latestAssistantValue.op0;
+    const ImageDes = latestAssistantValue.op0
+      ? latestAssistantValue.op0
+      : req.body.message;
 
     console.log("Generating Image");
     const generatedImage = await generateImage(ImageDes);
