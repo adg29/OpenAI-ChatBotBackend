@@ -8,6 +8,9 @@ const { NFTStorage, File } = require("nft.storage");
 const FormData = require("form-data");
 const { fromBuffer } = require("file-type");
 
+// const { ethers } = require("ethers");
+// const Near8RolePlaying = require("./abi.json");
+
 env.config();
 
 const app = express();
@@ -54,17 +57,37 @@ const storeImageNFT = async (imageBuffer, name, description) => {
       name,
       description,
     });
+    console.log(result);
     return { metadataUrl: result.url, metadataContent: result.data };
   } catch (error) {
-    throw new Error("IPFS upload failed");
+    throw new Error(error);
   }
 };
+
+// // Set up provider
+// const provider = new ethers.providers.JsonRpcProvider("YOUR_RPC_PROVIDER_URL");
+
+// // Set up signer
+// const privateKey = "YOUR_PRIVATE_KEY"; // Replace with your private key
+// const wallet = new ethers.Wallet(privateKey, provider);
+
+// // Connect to the contract
+// const contractAddress = "CONTRACT_ADDRESS"; // Replace with your contract address
+// const contract = new ethers.Contract(
+//   contractAddress,
+//   Near8RolePlaying.abi,
+//   wallet
+// );
+
+// // mint on-chain
+// const mintOnChain = async () => {};
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 app.post("/api/assist", async (req, res) => {
+  let modifiedResponse = { userMessage: req.body.message };
   try {
     const { message, assistant, threadId } = req.body;
 
@@ -84,6 +107,7 @@ app.post("/api/assist", async (req, res) => {
       console.log(`ThreadID : ${threadId}`);
     }
 
+    modifiedResponse = { ...modifiedResponse, thread: thread?.id };
     // Add user message to the thread
     const userMessage = await openai.beta.threads.messages.create(thread.id, {
       role: "user",
@@ -107,6 +131,11 @@ app.post("/api/assist", async (req, res) => {
       run = await openai.beta.threads.runs.retrieve(thread.id, run.id);
     }
 
+    modifiedResponse = {
+      ...modifiedResponse,
+      runStatus: run.status,
+      runUsage: run.usage,
+    };
     // Retrieve assistant's response messages
     const assistantMessages = await openai.beta.threads.messages.list(
       thread.id
@@ -123,41 +152,46 @@ app.post("/api/assist", async (req, res) => {
       ? JSON.parse(assistantMessagesFiltered[0].content[0].text.value)
       : "No assistant response available";
 
-    // console.log(`Description : ${latestAssistantValue.roleDescription}`);
-    // console.log(`ImageDescription : ${latestAssistantValue.imageDes}`);
-    // console.log(`Name : ${req.body.message}`);
-    // const ImageDes = latestAssistantValue.imageDes;
-    // const name = req.body.message;
-    // const description = latestAssistantValue;
+    modifiedResponse = {
+      ...modifiedResponse,
+      assistantResponse: latestAssistantValue,
+    };
+    console.log(`UserInput : ${req.body.message}`);
+    console.log(`Name : ${latestAssistantValue.op1}`);
+    console.log(`Description : ${latestAssistantValue.op2}`);
+    console.log(`ImageDescription : ${latestAssistantValue.op3}`);
+    const name = latestAssistantValue.op1;
+    // condition because of posts assistant consists op3 too
+    const description = latestAssistantValue.op3
+      ? latestAssistantValue.op2 + latestAssistantValue.op3
+      : latestAssistantValue.op2;
 
-    // console.log("Generating Image");
-    // const generatedImage = await generateImage(ImageDes);
-    // console.log("Image Generated");
+    const ImageDes = latestAssistantValue.op0;
 
-    // console.log("Uploading to IPFS");
-    // const { metadataUrl, metadataContent } = await storeImageNFT(
-    //   generatedImage,
-    //   name,
-    //   description,
-    //   ImageDes
-    // );
-    // console.log("Uploaded");
+    console.log("Generating Image");
+    const generatedImage = await generateImage(ImageDes);
+    console.log("Image Generated");
 
-    // const imageUrl = `https://nftstorage.link/ipfs/${metadataContent.image.hostname}${metadataContent.image.pathname}`;
-    // const updatedUrl = metadataUrl.replace(
-    //   "ipfs://",
-    //   "https://nftstorage.link/ipfs/"
-    // );
+    console.log("Uploading to IPFS");
+    const { metadataUrl, metadataContent } = await storeImageNFT(
+      generatedImage,
+      name,
+      description,
+      ImageDes
+    );
+    console.log("Uploaded");
+
+    const imageUrl = `https://nftstorage.link/ipfs/${metadataContent.image.hostname}${metadataContent.image.pathname}`;
+    const updatedUrl = metadataUrl.replace(
+      "ipfs://",
+      "https://nftstorage.link/ipfs/"
+    );
 
     // Modify the response object before sending it
-    const modifiedResponse = {
-      threadId: thread.id,
-      userMessage: req.body.message, // Extract user message directly from the request body
-      assistantResponse: latestAssistantValue,
-      runStatus: run.status,
-      runUsage: run.usage,
-      // ipfsUrl: updatedUrl,
-      // image: imageUrl
+    modifiedResponse = {
+      ...modifiedResponse,
+      ipfsUrl: updatedUrl,
+      image: imageUrl,
     };
 
     // Log the modified response
@@ -168,9 +202,11 @@ app.post("/api/assist", async (req, res) => {
 
     console.log("All Jobs Done!");
   } catch (error) {
-    console.error("Error:", error);
-    console.log("error", JSON.stringify(error));
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Error:", typeof error, error);
+    res.status(500).json({
+      error: error?.message || "Internal server error",
+      currentResponse: modifiedResponse,
+    });
   }
 });
 
