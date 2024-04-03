@@ -147,6 +147,11 @@ app.post("/api/assist", async (req, res) => {
       (message) => message.role === "assistant"
     );
 
+    console.log(
+      "assistantMessagesFilteredContent",
+      assistantMessagesFiltered[0].content[0]
+    );
+
     // Extract the "value" field from the latest assistant message
     const latestAssistantValue = assistantMessagesFiltered[0]
       ? JSON.parse(assistantMessagesFiltered[0].content[0].text.value)
