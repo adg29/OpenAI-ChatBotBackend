@@ -3,10 +3,10 @@ const env = require("dotenv");
 const { promisify } = require("util");
 const { default: OpenAI } = require("openai");
 
-const axios = require("axios");
-const { NFTStorage, File } = require("nft.storage");
-const FormData = require("form-data");
-const { fromBuffer } = require("file-type");
+// const axios = require("axios");
+// const { NFTStorage, File } = require("nft.storage");
+// const FormData = require("form-data");
+// const { fromBuffer } = require("file-type");
 
 // const { ethers } = require("ethers");
 // const Near8RolePlaying = require("./abi.json");
@@ -19,50 +19,50 @@ const port = process.env.PORT || 3000;
 // Define routes
 app.use(express.json());
 
-// Image generation function
-const generateImage = async (text) => {
-  try {
-    const form = new FormData();
-    form.append("prompt", text);
+// // Image generation function
+// const generateImage = async (text) => {
+//   try {
+//     const form = new FormData();
+//     form.append("prompt", text);
 
-    const response = await axios.post(
-      "https://clipdrop-api.co/text-to-image/v1",
-      form,
-      {
-        headers: {
-          "x-api-key": process.env.IMAGE_API_KEY,
-          ...form.getHeaders(),
-        },
-        responseType: "arraybuffer", // To get binary image data
-      }
-    );
-    return response.data;
-  } catch (error) {
-    console.log("generateImage error", error);
-    throw new Error("Image generation failed");
-  }
-};
+//     const response = await axios.post(
+//       "https://clipdrop-api.co/text-to-image/v1",
+//       form,
+//       {
+//         headers: {
+//           "x-api-key": process.env.IMAGE_API_KEY,
+//           ...form.getHeaders(),
+//         },
+//         responseType: "arraybuffer", // To get binary image data
+//       }
+//     );
+//     return response.data;
+//   } catch (error) {
+//     console.log("generateImage error", error);
+//     throw new Error("Image generation failed");
+//   }
+// };
 
-// IPFS upload function
-const storeImageNFT = async (imageBuffer, name, description) => {
-  try {
-    const fileType = await fromBuffer(imageBuffer);
-    const image = new File([imageBuffer], "temp.jpg", { type: fileType?.mime });
+// // IPFS upload function
+// const storeImageNFT = async (imageBuffer, name, description) => {
+//   try {
+//     const fileType = await fromBuffer(imageBuffer);
+//     const image = new File([imageBuffer], "temp.jpg", { type: fileType?.mime });
 
-    console.log("File", image);
+//     console.log("File", image);
 
-    const nftstorage = new NFTStorage({ token: process.env.NFT_STORAGE_KEY });
-    const result = await nftstorage.store({
-      image,
-      name,
-      description,
-    });
-    console.log(result);
-    return { metadataUrl: result.url, metadataContent: result.data };
-  } catch (error) {
-    throw new Error(error);
-  }
-};
+//     const nftstorage = new NFTStorage({ token: process.env.NFT_STORAGE_KEY });
+//     const result = await nftstorage.store({
+//       image,
+//       name,
+//       description,
+//     });
+//     console.log(result);
+//     return { metadataUrl: result.url, metadataContent: result.data };
+//   } catch (error) {
+//     throw new Error(error);
+//   }
+// };
 
 // // Set up provider
 // const provider = new ethers.providers.JsonRpcProvider("YOUR_RPC_PROVIDER_URL");
@@ -130,11 +130,13 @@ app.post("/api/assist", async (req, res) => {
       await sleep(500); // Wait for 0.5 seconds
       run = await openai.beta.threads.runs.retrieve(thread.id, run.id);
     }
+    const runUsage = run.usage;
+    console.log(`Usage : ${runUsage}`);
 
     modifiedResponse = {
       ...modifiedResponse,
       runStatus: run.status,
-      runUsage: run.usage,
+      // runUsage: run.usage,
     };
     // Retrieve assistant's response messages
     const assistantMessages = await openai.beta.threads.messages.list(
@@ -147,14 +149,20 @@ app.post("/api/assist", async (req, res) => {
       (message) => message.role === "assistant"
     );
 
-    console.log(
-      "assistantMessagesFilteredContent",
-      assistantMessagesFiltered[0].content[0]
-    );
+    // //throws error sometimes
+    // console.log(
+    //   "assistantMessagesFilteredContent",
+    //   assistantMessagesFiltered[0].content[0]
+    // );
 
     // Extract the "value" field from the latest assistant message
     const latestAssistantValue = assistantMessagesFiltered[0]
-      ? JSON.parse(assistantMessagesFiltered[0].content[0].text.value)
+      ? JSON.parse(
+          assistantMessagesFiltered[0].content[0].text.value.replace(
+            /```json|```/g,
+            ""
+          )
+        )
       : "No assistant response available";
 
     modifiedResponse = {
@@ -163,43 +171,47 @@ app.post("/api/assist", async (req, res) => {
     };
     console.log(`UserInput : ${req.body.message}`);
     console.log(`Name : ${latestAssistantValue.op1}`);
-    console.log(`Description : ${latestAssistantValue.op2}`);
+    console.log(
+      `Description : ${latestAssistantValue.op2 + latestAssistantValue.op3}`
+    );
     console.log(`ImageDescription : ${latestAssistantValue.op0}`);
-    const name = latestAssistantValue.op1;
-    // condition because of posts assistant consists op3 too
-    const description = latestAssistantValue.op3
-      ? latestAssistantValue.op2 + latestAssistantValue.op3
-      : latestAssistantValue.op2;
 
-    const ImageDes = latestAssistantValue.op0
-      ? latestAssistantValue.op0
-      : req.body.message;
+    // const name = latestAssistantValue.op1;
 
-    console.log("Generating Image");
-    const generatedImage = await generateImage(ImageDes);
-    console.log("Image Generated");
+    // // condition because of posts assistant consists op3 too
+    // const description = latestAssistantValue.op3
+    //   ? latestAssistantValue.op2 + latestAssistantValue.op3
+    //   : latestAssistantValue.op2;
 
-    console.log("Uploading to IPFS");
-    const { metadataUrl, metadataContent } = await storeImageNFT(
-      generatedImage,
-      name,
-      description,
-      ImageDes
-    );
-    console.log("Uploaded");
+    // const ImageDes = latestAssistantValue.op0
+    //   ? latestAssistantValue.op0
+    //   : req.body.message;
 
-    const imageUrl = `https://nftstorage.link/ipfs/${metadataContent.image.hostname}${metadataContent.image.pathname}`;
-    const updatedUrl = metadataUrl.replace(
-      "ipfs://",
-      "https://nftstorage.link/ipfs/"
-    );
+    // console.log("Generating Image");
+    // const generatedImage = await generateImage(ImageDes);
+    // console.log("Image Generated");
 
-    // Modify the response object before sending it
-    modifiedResponse = {
-      ...modifiedResponse,
-      ipfsUrl: updatedUrl,
-      image: imageUrl,
-    };
+    // console.log("Uploading to IPFS");
+    // const { metadataUrl, metadataContent } = await storeImageNFT(
+    //   generatedImage,
+    //   name,
+    //   description,
+    //   ImageDes
+    // );
+    // console.log("Uploaded");
+
+    // const imageUrl = `https://nftstorage.link/ipfs/${metadataContent.image.hostname}${metadataContent.image.pathname}`;
+    // const updatedUrl = metadataUrl.replace(
+    //   "ipfs://",
+    //   "https://nftstorage.link/ipfs/"
+    // );
+
+    // // Modify the response object before sending it
+    // modifiedResponse = {
+    //   ...modifiedResponse,
+    //   ipfsUrl: updatedUrl,
+    //   image: imageUrl,
+    // };
 
     // Log the modified response
     console.log("Modified Response:", modifiedResponse);
