@@ -2,8 +2,7 @@ const express = require("express");
 const env = require("dotenv");
 const { promisify } = require("util");
 const { default: OpenAI } = require("openai");
-
-// const axios = require("axios");
+const axios = require("axios");
 // const { NFTStorage, File } = require("nft.storage");
 // const FormData = require("form-data");
 // const { fromBuffer } = require("file-type");
@@ -88,8 +87,10 @@ const openai = new OpenAI({
 
 const sleep = promisify(setTimeout);
 
-async function createAndMonitorRun(threadId, assistantId) {
+async function createAndMonitorRun(threadId, assistantId, imageDescription) {
+  console.log("create and monitor imageDescription", imageDescription);
   let run;
+  let generatedImageDescription;
   try {
     run = await openai.beta.threads.runs.create(threadId, {
       assistant_id: assistantId,
@@ -101,34 +102,42 @@ async function createAndMonitorRun(threadId, assistantId) {
       // Handle "completed" status
       if (run.status === "completed") {
         console.log(run.id, "completed");
-        return await openai.beta.threads.messages.list(threadId);
       }
 
       // Handle "requires_action" status
       if (run.status === "requires_action") {
-        const toolOutputs = await handleRequiredActions(run, threadId);
-        if (run.required_action.type === "submit_tool_outputs") {
-          console.log("Submit output", toolOutputs);
+        const { toolOutputs, generatedImageDescriptionData } =
+          await handleRequiredActions(run, imageDescription);
+        console.log(
+          "generatedImageDescriptionData",
+          generatedImageDescriptionData
+        );
+        generatedImageDescription = generatedImageDescriptionData;
 
+        if (run.required_action.type === "submit_tool_outputs") {
           run = await openai.beta.threads.runs.submitToolOutputs(
             threadId,
             run.id,
             { tool_outputs: toolOutputs }
           );
-          console.log("Tool outputs submitted", threadId, run.id, toolOutputs);
         }
       }
     }
+    console.log("return gen desc", generatedImageDescription);
+    return { run, generatedImageDescription };
   } catch (error) {
     console.error(`Failed to create or monitor run: ${error}`);
     throw error; // Rethrow to handle it in the caller
   }
-  return run;
 }
 
-async function handleRequiredActions(run, threadId) {
+async function handleRequiredActions(run, imageDescription) {
   let toolOutputs = [];
-  let imagegen_ledger = {};
+  let generatedImageDescriptionData = null;
+  let imagegen_ledger = imageDescription
+    ? { description: imageDescription }
+    : {};
+
   console.log(run.id, "requires actions");
   console.log("All runs", run.required_action.submit_tool_outputs.tool_calls);
   for (let tool_call of run.required_action.submit_tool_outputs.tool_calls) {
@@ -136,13 +145,13 @@ async function handleRequiredActions(run, threadId) {
     if (tool_call.function.name === "generate_image") {
       const prompt = JSON.parse(tool_call.function.arguments).prompt;
       const imageUrl = await generateImage(prompt);
-      const imageDescription = await describeImage(
+      generatedImageDescriptionData = await describeImage(
         imageUrl,
         prompt,
         imagegen_ledger
       );
       console.log("Image URL:", imageUrl);
-      console.log("imageDescription", imageDescription);
+      console.log("imageDescription", generatedImageDescriptionData);
       toolOutputs.push({
         tool_call_id: tool_call.id,
         output: imageUrl,
@@ -160,8 +169,7 @@ async function handleRequiredActions(run, threadId) {
       });
     }
   }
-  console.log("toolOutputs", toolOutputs);
-  return toolOutputs;
+  return { toolOutputs, generatedImageDescriptionData };
 }
 
 async function retrieveAssistantMessages(threadId) {
@@ -178,10 +186,15 @@ async function retrieveAssistantMessages(threadId) {
 }
 
 async function processThread(req, res, next) {
-  const { message, assistant, threadId } = req.body;
+  const { message, assistant, threadId, imageDescription } = req.body;
+
+  console.log("imageDescription", imageDescription);
+  if (assistant === "posts" && !imageDescription) {
+    next(Error("imageDescription required for posts"));
+    return;
+  }
 
   let thread = { id: threadId || (await createNewThread()) };
-  let run;
 
   try {
     const assistantId = getAssistantId(assistant);
@@ -194,7 +207,12 @@ async function processThread(req, res, next) {
       content: message,
     });
 
-    run = await createAndMonitorRun(thread.id, assistantId);
+    const { run, generatedImageDescription } = await createAndMonitorRun(
+      thread.id,
+      assistantId,
+      imageDescription
+    );
+    console.log("generatedImageDescription", generatedImageDescription);
 
     const assistantMessages = await retrieveAssistantMessages(thread.id);
     const latestAssistantValue = parseLatestAssistantMessage(assistantMessages);
@@ -202,7 +220,8 @@ async function processThread(req, res, next) {
     const formattedResponse = formatResponse(
       req.body.message,
       latestAssistantValue,
-      run
+      run,
+      generatedImageDescription // Include the description in the response
     );
 
     console.log("Response sent successfully.");
@@ -210,10 +229,16 @@ async function processThread(req, res, next) {
   } catch (error) {
     console.log("processTrhead error", error);
     next(error); // Pass errors to the error handler
+    return;
   }
 }
 
-function formatResponse(userInput, latestAssistantValue, run) {
+function formatResponse(
+  userInput,
+  latestAssistantValue,
+  run,
+  imageDescription
+) {
   console.log(`UserInput: ${userInput}`);
   if (latestAssistantValue) {
     console.log(`Name: ${latestAssistantValue.op1}`);
@@ -228,6 +253,7 @@ function formatResponse(userInput, latestAssistantValue, run) {
     runStatus: run.status,
     assistantResponse:
       latestAssistantValue || "No assistant response available",
+    imageDescription,
   };
 }
 
@@ -269,8 +295,8 @@ const describeSystemPrompt = `
 
 async function describeImage(imgUrl, title, imagegen_ledger) {
   try {
-    const response = await openai.chatCompletions.create({
-      model: "gpt-4-vision-preview",
+    const response = await openai.chat.completions.create({
+      model: "gpt-4-turbo",
       temperature: 0.2,
       messages: [
         {
@@ -279,23 +305,25 @@ async function describeImage(imgUrl, title, imagegen_ledger) {
         },
         {
           role: "user",
-          content: {
-            type: "image_url",
-            image_url: imgUrl,
-          },
+          content: [
+            {
+              type: "image_url",
+              image_url: {
+                url: imgUrl,
+              },
+            },
+          ],
         },
         {
           role: "user",
           content: title,
         },
       ],
-      max_tokens: 300,
     });
 
     imagegen_ledger["url"] = imgUrl;
     imagegen_ledger["prompt"] = title;
     image_description = response.choices[0].message.content;
-    console.log("image_description", image_description);
     imagegen_ledger["description"] = image_description;
 
     return image_description;
@@ -359,6 +387,33 @@ app.use((err, req, res, next) => {
 app.post("/api/assist", async (req, res, next) => {
   try {
     processThread(req, res, next);
+  } catch (error) {
+    console.error("Error:", typeof error, error);
+    next(error); // Pass errors to the error handler
+  }
+});
+
+app.post("/api/vision", async (req, res, next) => {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4-turbo",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "What’s in this image?" },
+            {
+              type: "image_url",
+              image_url: {
+                url: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg",
+              },
+            },
+          ],
+        },
+      ],
+    });
+    console.log(response.choices[0]);
+    res.json({ description: response.choices[0] });
   } catch (error) {
     console.error("Error:", typeof error, error);
     next(error); // Pass errors to the error handler
