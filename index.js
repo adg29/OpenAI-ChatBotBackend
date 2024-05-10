@@ -88,33 +88,41 @@ const openai = new OpenAI({
 const sleep = promisify(setTimeout);
 
 async function createAndMonitorRun(threadId, assistantId, imageDescription) {
-  console.log("create and monitor imageDescription", imageDescription);
+  console.log("Creating and monitoring run for thread:", threadId);
   let run;
   let generatedImageDescription;
+  let imageUrl = ""; // Declare imageUrl variable
   try {
     run = await openai.beta.threads.runs.create(threadId, {
       assistant_id: assistantId,
     });
     while (run.status === "queued" || run.status === "in_progress") {
       await sleep(500); // Poll every 0.5 seconds
+      console.log(`Polling run status for thread ${threadId}: ${run.status}`);
       run = await openai.beta.threads.runs.retrieve(threadId, run.id);
 
       // Handle "completed" status
       if (run.status === "completed") {
-        console.log(run.id, "completed");
+        console.log("Run", run.id, "completed");
       }
 
       // Handle "requires_action" status
       if (run.status === "requires_action") {
-        const { toolOutputs, generatedImageDescriptionData } =
+        console.log("Run", run.id, "requires action");
+
+        const { toolOutputs, generatedImageDescriptionData, imageUrlData } =
           await handleRequiredActions(run, imageDescription);
-        console.log(
-          "generatedImageDescriptionData",
-          generatedImageDescriptionData
-        );
+
+        console.log("[handleRequiredActions] Response:", {
+          generatedImageDescriptionData,
+          imageUrlData,
+        });
+
         generatedImageDescription = generatedImageDescriptionData;
+        imageUrl = imageUrlData; // Assign the obtained imageUrl
 
         if (run.required_action.type === "submit_tool_outputs") {
+          console.log("Submitting tool outputs for run", run.id);
           run = await openai.beta.threads.runs.submitToolOutputs(
             threadId,
             run.id,
@@ -123,8 +131,12 @@ async function createAndMonitorRun(threadId, assistantId, imageDescription) {
         }
       }
     }
-    console.log("return gen desc", generatedImageDescription);
-    return { run, generatedImageDescription };
+    console.log(
+      "[createAndMonitorRun] Returning generated image description and URL:",
+      generatedImageDescription,
+      imageUrl
+    );
+    return { run, generatedImageDescription, imageUrl };
   } catch (error) {
     console.error(`Failed to create or monitor run: ${error}`);
     throw error; // Rethrow to handle it in the caller
@@ -132,8 +144,10 @@ async function createAndMonitorRun(threadId, assistantId, imageDescription) {
 }
 
 async function handleRequiredActions(run, imageDescription) {
+  console.log("Handling required actions for run:", run.id);
   let toolOutputs = [];
-  let generatedImageDescriptionData = null;
+  let generatedImageDescriptionData;
+  let imageUrlData = null; // To store the most recent or relevant image URL
   let imagegen_ledger = imageDescription
     ? { description: imageDescription }
     : {};
@@ -141,7 +155,10 @@ async function handleRequiredActions(run, imageDescription) {
   console.log(run.id, "requires actions");
   console.log("All runs", run.required_action.submit_tool_outputs.tool_calls);
   for (let tool_call of run.required_action.submit_tool_outputs.tool_calls) {
-    console.log(tool_call.function.name);
+    console.log(
+      "[handleRequiredActions] Tool Call func name:",
+      tool_call.function.name
+    );
     if (tool_call.function.name === "generate_image") {
       const prompt = JSON.parse(tool_call.function.arguments).prompt;
       const imageUrl = await generateImage(prompt);
@@ -150,29 +167,41 @@ async function handleRequiredActions(run, imageDescription) {
         prompt,
         imagegen_ledger
       );
-      console.log("Image URL:", imageUrl);
-      console.log("imageDescription", generatedImageDescriptionData);
+      console.log(
+        "[generate_image Tool Call] generateImage & describeImage Response:",
+        {
+          imageUrl,
+          generatedImageDescriptionData,
+        }
+      );
       toolOutputs.push({
         tool_call_id: tool_call.id,
         output: imageUrl,
       });
+      imageUrlData = imageUrl; // Save the last generated image URL
     }
 
     if (tool_call.function.name === "generate_image_consistent") {
       const prompt = JSON.parse(tool_call.function.arguments).prompt;
-      console.log("generateImageConsistent", prompt, imagegen_ledger);
+      console.log(
+        "Generating consistent image with prompt:",
+        prompt,
+        imagegen_ledger
+      );
       const imageUrl = await generateImageConsistent(prompt, imagegen_ledger);
       console.log("Consistent Image URL:", imageUrl);
       toolOutputs.push({
         tool_call_id: tool_call.id,
         output: imageUrl,
       });
+      imageUrlData = imageUrl; // Save the last generated image URL
     }
   }
-  return { toolOutputs, generatedImageDescriptionData };
+  return { toolOutputs, generatedImageDescriptionData, imageUrlData };
 }
 
 async function retrieveAssistantMessages(threadId) {
+  console.log("Retrieving messages for thread:", threadId);
   try {
     const assistantMessages = await openai.beta.threads.messages.list(threadId);
     const assistantMessagesFiltered = assistantMessages.body.data.filter(
@@ -188,7 +217,8 @@ async function retrieveAssistantMessages(threadId) {
 async function processThread(req, res, next) {
   const { message, assistant, threadId, imageDescription } = req.body;
 
-  console.log("imageDescription", imageDescription);
+  console.log("[Received request]", req.body);
+
   if (assistant === "posts" && !imageDescription) {
     next(Error("imageDescription required for posts"));
     return;
@@ -207,21 +237,23 @@ async function processThread(req, res, next) {
       content: message,
     });
 
-    const { run, generatedImageDescription } = await createAndMonitorRun(
-      thread.id,
-      assistantId,
-      imageDescription
-    );
-    console.log("generatedImageDescription", generatedImageDescription);
+    const { run, generatedImageDescription, imageUrl } =
+      await createAndMonitorRun(thread.id, assistantId, imageDescription);
+    console.log("[createAndMonitorRun]", {
+      generatedImageDescription,
+      imageUrl,
+    });
 
     const assistantMessages = await retrieveAssistantMessages(thread.id);
     const latestAssistantValue = parseLatestAssistantMessage(assistantMessages);
 
     const formattedResponse = formatResponse(
+      thread.id,
       req.body.message,
       latestAssistantValue,
       run,
-      generatedImageDescription // Include the description in the response
+      generatedImageDescription, // Include the description in the response
+      imageUrl
     );
 
     console.log("Response sent successfully.");
@@ -234,26 +266,38 @@ async function processThread(req, res, next) {
 }
 
 function formatResponse(
+  threadId,
   userInput,
   latestAssistantValue,
   run,
-  imageDescription
+  imageDescription,
+  imageUrl // Add imageUrl parameter
 ) {
-  console.log(`UserInput: ${userInput}`);
+  console.log(`Formatting response for user input: ${userInput}`);
   if (latestAssistantValue) {
-    console.log(`Name: ${latestAssistantValue.op1}`);
+    console.log(`Assistant name: ${latestAssistantValue.op1}`);
     console.log(
-      `Description: ${latestAssistantValue.op2 + latestAssistantValue.op3}`
+      `Assistant description: ${
+        latestAssistantValue.op2 + latestAssistantValue.op3
+      }`
     );
-    console.log(`ImageDescription: ${latestAssistantValue.op0}`);
+    console.log(`Image description: ${latestAssistantValue.op0}`);
   }
 
+  const assistantResponse = {
+    op0: imageUrl,
+    op1: latestAssistantValue?.op1,
+    op2: (latestAssistantValue?.op2 || "") + (latestAssistantValue?.op3 || ""),
+  };
+
   return {
+    threadId,
     userInput,
     runStatus: run.status,
-    assistantResponse:
-      latestAssistantValue || "No assistant response available",
-    imageDescription,
+    assistantResponse: latestAssistantValue
+      ? assistantResponse
+      : "No assistant response available",
+    imageDescriptionForPosts: imageDescription,
   };
 }
 
