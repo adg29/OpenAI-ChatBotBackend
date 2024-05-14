@@ -88,7 +88,12 @@ const openai = new OpenAI({
 const sleep = promisify(setTimeout);
 
 async function createAndMonitorRun(threadId, assistantId, imageDescription) {
-  console.log("Creating and monitoring run for thread:", threadId);
+  console.log(
+    "Creating and monitoring run for thread:",
+    threadId,
+    assistantId,
+    imageDescription
+  );
   let run;
   let generatedImageDescription;
   let imageUrl = ""; // Declare imageUrl variable
@@ -295,6 +300,7 @@ function formatResponse(
     threadId,
     userInput,
     runStatus: run.status,
+    runId: run.id,
     assistantResponse: latestAssistantValue
       ? assistantResponse
       : "No assistant response available",
@@ -332,7 +338,7 @@ function getAssistantId(assistant) {
 }
 
 const describeSystemPrompt = `
-Provide a detailed description of a role-playing game character, focusing on key visual traits essential for consistent image generation. Required characteristics include race, gender, and hairstyle. Additionally, include unique facial features in the description. For example, an image subject might have a pointy nose, piercing eyes, big eyes, or a mole on the face. The resulting description should be concise, limited to 550 characters, exclude any background details, and avoid the use of Markdown or special characters. This format ensures compatibility with JSON API endpoints.
+    You are a system generating detailed descriptions of the main subject of an image, a character for a role-playing game. Provide a detailed description of a the game character, focusing on key visual traits essential for consistent image generation. Describe the detailed character for an image generator to recreate consistency of the main subject, including characteristics (e.g., human/non-human, gender, age), style (e.g., Real-Time, Realistic, Cartoon, Anime, Manga, Surreal). Required characteristics include race, gender, and hairstyle. Always include unique facial features in the description. For example, an image subject might have a particular complexion, or a particularly shaped nose, or piercing eyes, or big eyes, or a mole on the face. The resulting description should be concise, limited to 550 characters, exclude any background details, and avoid the use of Markdown or special characters. This format ensures compatibility with JSON API endpoints.
 `;
 
 async function describeImage(imgUrl, title, imagegen_ledger) {
@@ -401,9 +407,9 @@ async function generateImageConsistent(
   size = "1024x1024"
 ) {
   const imagegen_ledger_consistent = imagegen_ledger || { description: "" };
-  console.log("Generating image consistently:", prompt);
   try {
     const adjustedPrompt = prompt + imagegen_ledger_consistent["description"];
+    console.log("Generating image consistently:", adjustedPrompt);
     const response = await openai.images.generate({
       model: "dall-e-3",
       prompt: adjustedPrompt,
@@ -445,27 +451,25 @@ app.post("/api/assist", async (req, res, next) => {
   }
 });
 
-app.post("/api/vision", async (req, res, next) => {
+app.delete("/api/run", async (req, res, next) => {
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo",
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: "What’s in this image?" },
-            {
-              type: "image_url",
-              image_url: {
-                url: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg",
-              },
-            },
-          ],
-        },
-      ],
+    const { threadId, runId } = req.body;
+    console.log("canceling", threadId, runId);
+
+    console.log("[Received cancel request]", req.body);
+
+    if (!threadId || !runId) {
+      next(Error("thread and run id required"));
+      return;
+    }
+
+    const cancelResponse = await openai.beta.threads.runs.cancel(thread.id, {
+      role: "user",
+      content: message,
     });
-    console.log(response.choices[0]);
-    res.json({ description: response.choices[0] });
+    console.log(cancelResponse);
+
+    res.json({ ...req.body, status: "cancelled" });
   } catch (error) {
     console.error("Error:", typeof error, error);
     next(error); // Pass errors to the error handler
