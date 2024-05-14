@@ -216,6 +216,7 @@ async function retrieveAssistantMessages(threadId) {
 
 async function processThread(req, res, next) {
   const { message, assistant, threadId, imageDescription } = req.body;
+  console.log("message", message);
 
   console.log("[Received request]", req.body);
 
@@ -331,16 +332,13 @@ function getAssistantId(assistant) {
 }
 
 const describeSystemPrompt = `
-    You are a system generating detailed descriptions of the main subject of an image, a character for a role-playing game.
-    Describe the detailed character for an image generator to recreate consistency of the main subject, including characteristics (e.g., human/non-human, gender, age), style (e.g., Real-Time, Realistic, Cartoon, Anime, Manga, Surreal), and resolution (e.g., SD, HD, QHD, 4k, 8k).
-    Provided with an image, you will describe the main subject that you see in the image, giving details that will be used to describe and maintain consistency with the main subject when new images are generated with the image generation model.
-    You can describe unambiguously the main subject of the image.
+Provide a detailed description of a role-playing game character, focusing on key visual traits essential for consistent image generation. Required characteristics include race, gender, and hairstyle. Additionally, include unique facial features in the description. For example, an image subject might have a pointy nose, piercing eyes, big eyes, or a mole on the face. The resulting description should be concise, limited to 550 characters, exclude any background details, and avoid the use of Markdown or special characters. This format ensures compatibility with JSON API endpoints.
 `;
 
 async function describeImage(imgUrl, title, imagegen_ledger) {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo",
+      model: "gpt-4o",
       temperature: 0.2,
       messages: [
         {
@@ -421,6 +419,16 @@ async function generateImageConsistent(
     throw error;
   }
 }
+
+// Middleware to catch JSON parsing errors
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
+    console.error(`JSON Syntax Error: ${err.message}`);
+    console.error(`Request Body: ${req.rawBody}`);
+    return res.status(400).send({ status: 400, message: "Invalid JSON" });
+  }
+  next();
+});
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
