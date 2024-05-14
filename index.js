@@ -88,7 +88,12 @@ const openai = new OpenAI({
 const sleep = promisify(setTimeout);
 
 async function createAndMonitorRun(threadId, assistantId, imageDescription) {
-  console.log("Creating and monitoring run for thread:", threadId);
+  console.log(
+    "Creating and monitoring run for thread:",
+    threadId,
+    assistantId,
+    imageDescription
+  );
   let run;
   let generatedImageDescription;
   let imageUrl = ""; // Declare imageUrl variable
@@ -216,6 +221,7 @@ async function retrieveAssistantMessages(threadId) {
 
 async function processThread(req, res, next) {
   const { message, assistant, threadId, imageDescription } = req.body;
+  console.log("message", message);
 
   console.log("[Received request]", req.body);
 
@@ -294,6 +300,7 @@ function formatResponse(
     threadId,
     userInput,
     runStatus: run.status,
+    runId: run.id,
     assistantResponse: latestAssistantValue
       ? assistantResponse
       : "No assistant response available",
@@ -331,16 +338,13 @@ function getAssistantId(assistant) {
 }
 
 const describeSystemPrompt = `
-    You are a system generating detailed descriptions of the main subject of an image, a character for a role-playing game.
-    Describe the detailed character for an image generator to recreate consistency of the main subject, including characteristics (e.g., human/non-human, gender, age), style (e.g., Real-Time, Realistic, Cartoon, Anime, Manga, Surreal), and resolution (e.g., SD, HD, QHD, 4k, 8k).
-    Provided with an image, you will describe the main subject that you see in the image, giving details that will be used to describe and maintain consistency with the main subject when new images are generated with the image generation model.
-    You can describe unambiguously the main subject of the image.
+    You are a system generating detailed descriptions of the main subject of an image, a character for a role-playing game. Provide a detailed description of a the game character, focusing on key visual traits essential for consistent image generation. Describe the detailed character for an image generator to recreate consistency of the main subject, including characteristics (e.g., human/non-human, gender, age), style (e.g., Real-Time, Realistic, Cartoon, Anime, Manga, Surreal). Required characteristics include race, gender, and hairstyle. Always include unique facial features in the description. For example, an image subject might have a particular complexion, or a particularly shaped nose, or piercing eyes, or big eyes, or a mole on the face. The resulting description should be concise, limited to 550 characters, exclude any background details, and avoid the use of Markdown or special characters. This format ensures compatibility with JSON API endpoints.
 `;
 
 async function describeImage(imgUrl, title, imagegen_ledger) {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo",
+      model: "gpt-4o",
       temperature: 0.2,
       messages: [
         {
@@ -403,9 +407,9 @@ async function generateImageConsistent(
   size = "1024x1024"
 ) {
   const imagegen_ledger_consistent = imagegen_ledger || { description: "" };
-  console.log("Generating image consistently:", prompt);
   try {
     const adjustedPrompt = prompt + imagegen_ledger_consistent["description"];
+    console.log("Generating image consistently:", adjustedPrompt);
     const response = await openai.images.generate({
       model: "dall-e-3",
       prompt: adjustedPrompt,
@@ -422,6 +426,16 @@ async function generateImageConsistent(
   }
 }
 
+// Middleware to catch JSON parsing errors
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
+    console.error(`JSON Syntax Error: ${err.message}`);
+    console.error(`Request Body: ${req.rawBody}`);
+    return res.status(400).send({ status: 400, message: "Invalid JSON" });
+  }
+  next();
+});
+
 // Error Handling Middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -437,27 +451,25 @@ app.post("/api/assist", async (req, res, next) => {
   }
 });
 
-app.post("/api/vision", async (req, res, next) => {
+app.delete("/api/run", async (req, res, next) => {
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo",
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: "What’s in this image?" },
-            {
-              type: "image_url",
-              image_url: {
-                url: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg",
-              },
-            },
-          ],
-        },
-      ],
+    const { threadId, runId } = req.body;
+    console.log("canceling", threadId, runId);
+
+    console.log("[Received cancel request]", req.body);
+
+    if (!threadId || !runId) {
+      next(Error("thread and run id required"));
+      return;
+    }
+
+    const cancelResponse = await openai.beta.threads.runs.cancel(thread.id, {
+      role: "user",
+      content: message,
     });
-    console.log(response.choices[0]);
-    res.json({ description: response.choices[0] });
+    console.log(cancelResponse);
+
+    res.json({ ...req.body, status: "cancelled" });
   } catch (error) {
     console.error("Error:", typeof error, error);
     next(error); // Pass errors to the error handler
