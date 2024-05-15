@@ -3,12 +3,6 @@ const env = require("dotenv");
 const { promisify } = require("util");
 const { default: OpenAI } = require("openai");
 const axios = require("axios");
-// const { NFTStorage, File } = require("nft.storage");
-// const FormData = require("form-data");
-// const { fromBuffer } = require("file-type");
-
-// const { ethers } = require("ethers");
-// const Near8RolePlaying = require("./abi.json");
 
 env.config();
 
@@ -17,69 +11,6 @@ const port = process.env.PORT || 3000;
 
 // Define routes
 app.use(express.json());
-
-// // Image generation function
-// const generateImage = async (text) => {
-//   try {
-//     const form = new FormData();
-//     form.append("prompt", text);
-
-//     const response = await axios.post(
-//       "https://clipdrop-api.co/text-to-image/v1",
-//       form,
-//       {
-//         headers: {
-//           "x-api-key": process.env.IMAGE_API_KEY,
-//           ...form.getHeaders(),
-//         },
-//         responseType: "arraybuffer", // To get binary image data
-//       }
-//     );
-//     return response.data;
-//   } catch (error) {
-//     console.log("generateImage error", error);
-//     throw new Error("Image generation failed");
-//   }
-// };
-
-// // IPFS upload function
-// const storeImageNFT = async (imageBuffer, name, description) => {
-//   try {
-//     const fileType = await fromBuffer(imageBuffer);
-//     const image = new File([imageBuffer], "temp.jpg", { type: fileType?.mime });
-
-//     console.log("File", image);
-
-//     const nftstorage = new NFTStorage({ token: process.env.NFT_STORAGE_KEY });
-//     const result = await nftstorage.store({
-//       image,
-//       name,
-//       description,
-//     });
-//     console.log(result);
-//     return { metadataUrl: result.url, metadataContent: result.data };
-//   } catch (error) {
-//     throw new Error(error);
-//   }
-// };
-
-// // Set up provider
-// const provider = new ethers.providers.JsonRpcProvider("YOUR_RPC_PROVIDER_URL");
-
-// // Set up signer
-// const privateKey = "YOUR_PRIVATE_KEY"; // Replace with your private key
-// const wallet = new ethers.Wallet(privateKey, provider);
-
-// // Connect to the contract
-// const contractAddress = "CONTRACT_ADDRESS"; // Replace with your contract address
-// const contract = new ethers.Contract(
-//   contractAddress,
-//   Near8RolePlaying.abi,
-//   wallet
-// );
-
-// // mint on-chain
-// const mintOnChain = async () => {};
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -209,9 +140,18 @@ async function retrieveAssistantMessages(threadId) {
   console.log("Retrieving messages for thread:", threadId);
   try {
     const assistantMessages = await openai.beta.threads.messages.list(threadId);
+    console.log("[Retrieve Assistant Message]:", assistantMessages);
+    console.log("---------------------------------------------");
     const assistantMessagesFiltered = assistantMessages.body.data.filter(
       (message) => message.role === "assistant"
     );
+    console.log("[Filtered Assistant Message]:", assistantMessagesFiltered);
+    console.log("---------------------------------------------");
+    console.log(
+      "assistantMessagesFilteredContent",
+      assistantMessagesFiltered[0].content[0]
+    );
+    console.log("---------------------------------------------");
     return assistantMessagesFiltered;
   } catch (error) {
     console.error(`Failed to retrieve messages: ${error}`);
@@ -252,6 +192,8 @@ async function processThread(req, res, next) {
 
     const assistantMessages = await retrieveAssistantMessages(thread.id);
     const latestAssistantValue = parseLatestAssistantMessage(assistantMessages);
+
+    console.log("[Latest Assistant Value]:", latestAssistantValue);
 
     const formattedResponse = formatResponse(
       thread.id,
