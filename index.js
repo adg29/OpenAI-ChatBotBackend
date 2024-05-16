@@ -140,19 +140,42 @@ async function retrieveAssistantMessages(threadId) {
   console.log("Retrieving messages for thread:", threadId);
   try {
     const assistantMessages = await openai.beta.threads.messages.list(threadId);
-    console.log("[Retrieve Assistant Message]:", assistantMessages);
-    console.log("---------------------------------------------");
+
+    // Filter out messages where the role is "assistant"
     const assistantMessagesFiltered = assistantMessages.body.data.filter(
       (message) => message.role === "assistant"
     );
-    console.log("[Filtered Assistant Message]:", assistantMessagesFiltered);
-    console.log("---------------------------------------------");
-    console.log(
-      "assistantMessagesFilteredContent",
-      assistantMessagesFiltered[0].content[0]
-    );
-    console.log("---------------------------------------------");
-    return assistantMessagesFiltered;
+
+    if (assistantMessagesFiltered.length > 0) {
+      const assistantMessageContent = assistantMessagesFiltered[0].content;
+
+      let latestAssistantValue;
+      if (typeof assistantMessageContent === "string") {
+        latestAssistantValue = JSON.parse(
+          assistantMessageContent.replace(/```json|```/g, "")
+        );
+      } else {
+        latestAssistantValue = assistantMessageContent;
+      }
+
+      // Since latestAssistantValue is a list, we need to access the first element
+      if (
+        Array.isArray(latestAssistantValue) &&
+        latestAssistantValue.length > 0
+      ) {
+        const parsedValue = JSON.parse(latestAssistantValue[0].text.value);
+
+        console.log(`Name : ${parsedValue.op1}`);
+        console.log(`Description : ${parsedValue.op2 + parsedValue.op3}`);
+        console.log(`ImageDescription : ${parsedValue.op0}`);
+
+        return parsedValue;
+      } else {
+        return "No assistant message content response available";
+      }
+    } else {
+      return "No assistant response available";
+    }
   } catch (error) {
     console.error(`Failed to retrieve messages: ${error}`);
     throw error; // Rethrow to handle it in the caller
@@ -190,81 +213,33 @@ async function processThread(req, res, next) {
       imageUrl,
     });
 
-    const assistantMessages = await retrieveAssistantMessages(thread.id);
-    const latestAssistantValue = parseLatestAssistantMessage(assistantMessages);
+    const parsedValue = await retrieveAssistantMessages(thread.id);
+    // const latestAssistantValue = parseLatestAssistantMessage(assistantMessages);
 
-    console.log("[Latest Assistant Value]:", latestAssistantValue);
+    const formattedResponse = {
+      threadId: thread.id,
+      userMessage: req.body.message,
+      run: run.id,
+      name: parsedValue.op1,
+      description: parsedValue.op2 + parsedValue.op3,
+      generatedImageDescriptionForPosts: generatedImageDescription, // Include the description in the response
+      imageUrl: imageUrl,
+    };
 
-    const formattedResponse = formatResponse(
-      thread.id,
-      req.body.message,
-      latestAssistantValue,
-      run,
-      generatedImageDescription, // Include the description in the response
-      imageUrl
-    );
+    modifiedResponse = {
+      ...modifiedResponse,
+      op1: parsedValue.op1,
+      op2: parsedValue.op2 + parsedValue.op3,
+      op0: parsedValue.op0,
+    };
 
     console.log("Response sent successfully.");
     res.json(formattedResponse);
   } catch (error) {
-    console.log("processTrhead error", error);
+    console.log("processThread error", error);
     next(error); // Pass errors to the error handler
     return;
   }
-}
-
-function formatResponse(
-  threadId,
-  userInput,
-  latestAssistantValue,
-  run,
-  imageDescription,
-  imageUrl // Add imageUrl parameter
-) {
-  console.log(`Formatting response for user input: ${userInput}`);
-  if (latestAssistantValue) {
-    console.log(`Assistant name: ${latestAssistantValue.op1}`);
-    console.log(
-      `Assistant description: ${
-        latestAssistantValue.op2 + latestAssistantValue.op3
-      }`
-    );
-    console.log(`Image description: ${latestAssistantValue.op0}`);
-  }
-
-  const assistantResponse = {
-    op0: imageUrl,
-    op1: latestAssistantValue?.op1,
-    op2: (latestAssistantValue?.op2 || "") + (latestAssistantValue?.op3 || ""),
-  };
-
-  return {
-    threadId,
-    userInput,
-    runStatus: run.status,
-    runId: run.id,
-    assistantResponse: latestAssistantValue
-      ? assistantResponse
-      : "No assistant response available",
-    imageDescriptionForPosts: imageDescription,
-  };
-}
-
-function parseLatestAssistantMessage(messages) {
-  if (
-    messages.length > 0 &&
-    messages[0].content &&
-    messages[0].content[0].text
-  ) {
-    try {
-      return JSON.parse(
-        messages[0].content[0].text.value.replace(/```json|```/g, "")
-      );
-    } catch (error) {
-      console.error("Error parsing message content:", error);
-    }
-  }
-  return null;
 }
 
 async function createNewThread() {
@@ -280,7 +255,7 @@ function getAssistantId(assistant) {
 }
 
 const describeSystemPrompt = `
-    You are a system generating detailed descriptions of the main subject of an image, a character for a role-playing game. Provide a detailed description of a the game character, focusing on key visual traits essential for consistent image generation. Describe the detailed character for an image generator to recreate consistency of the main subject, including characteristics (e.g., human/non-human, gender, age), style (e.g., Real-Time, Realistic, Cartoon, Anime, Manga, Surreal). Required characteristics include race, gender, and hairstyle. Always include unique facial features in the description. For example, an image subject might have a particular complexion, or a particularly shaped nose, or piercing eyes, or big eyes, or a mole on the face. The resulting description should be concise, limited to 550 characters, exclude any background details, and avoid the use of Markdown or special characters. This format ensures compatibility with JSON API endpoints.
+    You are a system generating detailed descriptions of the main subject of an image, a character for a role-playing game. Provide a detailed description of the game character, focusing on key visual traits essential for consistent image generation. Describe the detailed character for an image generator to recreate consistency of the main subject, including characteristics (e.g., human/non-human, gender, age), style (e.g., Real-Time, Realistic, Cartoon, Anime, Manga, Surreal). Required characteristics include race, gender, and hairstyle. Always include unique facial features, skin tone, hair color, and clothing details. Describe accessories or items the character often uses. The output should not be more than 2 paragraphs, and should include bullet points summarizing the key traits at the end.
 `;
 
 async function describeImage(imgUrl, title, imagegen_ledger) {
