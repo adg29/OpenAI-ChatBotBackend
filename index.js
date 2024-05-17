@@ -380,9 +380,9 @@ app.delete("/api/run", async (req, res, next) => {
       return;
     }
 
-    const cancelResponse = await openai.beta.threads.runs.cancel(thread.id, {
+    const cancelResponse = await openai.beta.threads.runs.cancel(threadId, {
       role: "user",
-      content: message,
+      // content: message,
     });
     console.log(cancelResponse);
 
