@@ -40,6 +40,7 @@ async function createAndMonitorRun(threadId, assistantId, imageDescription) {
       // Handle "completed" status
       if (run.status === "completed") {
         console.log("Run", run.id, "completed");
+        console.log("Run Usage", run.id, run.usage);
       }
 
       // Handle "requires_action" status
