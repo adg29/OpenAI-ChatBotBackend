@@ -222,7 +222,10 @@ async function processThread(req, res, next) {
       userMessage: req.body.message,
       run: run.id,
       name: parsedValue.op1,
-      description: parsedValue.op2 + parsedValue.op3,
+      description:
+        parsedValue.op2 || parsedValue.op3
+          ? [parsedValue.op2, parsedValue.op3].join("")
+          : undefined,
       generatedImageDescriptionForPosts: generatedImageDescription, // Include the description in the response
       imageUrl: imageUrl,
     };
@@ -256,7 +259,7 @@ function getAssistantId(assistant) {
 }
 
 const describeSystemPrompt = `
-    You are a system generating detailed descriptions of the main subject of an image, a character for a role-playing game. Provide a detailed description of the game character, focusing on key visual traits essential for consistent image generation. Describe the detailed character for an image generator to recreate consistency of the main subject, including characteristics (e.g., human/non-human, gender, age), style (e.g., Real-Time, Realistic, Cartoon, Anime, Manga, Surreal). Required characteristics include race, gender, and hairstyle. Always include unique facial features, skin tone, hair color, and clothing details. Describe accessories or items the character often uses. The output should not be more than 2 paragraphs, and should include bullet points summarizing the key traits at the end.
+Provide a detailed description of a role-playing game character, focusing on key visual traits essential for consistent image generation. Required characteristics include race, gender, and hairstyle. Additionally, include unique facial features in the description. For example, an image subject might have a pointy nose, piercing eyes, big eyes, or a mole on the face. The resulting description should be concise, limited to 550 characters, exclude any background details, and avoid the use of Markdown or special characters. This format ensures compatibility with JSON API endpoints.
 `;
 
 async function describeImage(imgUrl, title, imagegen_ledger) {
@@ -422,9 +425,9 @@ app.delete("/api/run", async (req, res, next) => {
       return;
     }
 
-    const cancelResponse = await openai.beta.threads.runs.cancel(thread.id, {
+    const cancelResponse = await openai.beta.threads.runs.cancel(threadId, {
       role: "user",
-      content: message,
+      // content: message,
     });
     console.log(cancelResponse);
 
