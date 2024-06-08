@@ -344,6 +344,47 @@ async function generateImageConsistent(
   }
 }
 
+async function getTokenUsageByRun(threadId, runId) {
+  try {
+    const run = await openai.beta.threads.runs.retrieve(threadId, runId);
+    if (run && run.usage) {
+      console.log("Token usage for run:", run.usage);
+      return run.usage;
+    } else {
+      console.log("No usage data available for this run.");
+      return null;
+    }
+  } catch (error) {
+    console.error("Failed to retrieve run usage:", error);
+    throw error;
+  }
+}
+
+async function getTotalTokenUsage(threadId) {
+  try {
+    const runs = await openai.beta.threads.runs.list(threadId);
+    let totalUsage = {
+      prompt_tokens: 0,
+      completion_tokens: 0,
+      total_tokens: 0,
+    };
+
+    runs.forEach((run) => {
+      if (run.usage) {
+        totalUsage.prompt_tokens += run.usage.prompt_tokens;
+        totalUsage.completion_tokens += run.usage.completion_tokens;
+        totalUsage.total_tokens += run.usage.total_tokens;
+      }
+    });
+
+    console.log("Total token usage for all runs in the thread:", totalUsage);
+    return totalUsage;
+  } catch (error) {
+    console.error("Failed to retrieve total token usage:", error);
+    throw error;
+  }
+}
+
 // Middleware to catch JSON parsing errors
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
