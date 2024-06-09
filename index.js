@@ -217,6 +217,8 @@ async function processThread(req, res, next) {
     const parsedValue = await retrieveAssistantMessages(thread.id);
     // const latestAssistantValue = parseLatestAssistantMessage(assistantMessages);
 
+    // Fetch run usage details
+    const runUsage = await getTokenUsageByRun(thread.id, run.id);
     const formattedResponse = {
       threadId: thread.id,
       userMessage: req.body.message,
@@ -228,6 +230,7 @@ async function processThread(req, res, next) {
           : undefined,
       generatedImageDescriptionForPosts: generatedImageDescription, // Include the description in the response
       imageUrl: imageUrl,
+      RunUsage: runUsage, // Add run usage to the response
     };
 
     modifiedResponse = {
