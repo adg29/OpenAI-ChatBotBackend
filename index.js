@@ -265,6 +265,57 @@ const describeSystemPrompt = `
 Provide a detailed description of a role-playing game character, focusing on key visual traits essential for consistent image generation. Required characteristics include race, gender, and hairstyle. Additionally, include unique facial features in the description. For example, an image subject might have a pointy nose, piercing eyes, big eyes, or a mole on the face. The resulting description should be concise, limited to 550 characters, exclude any background details, and avoid the use of Markdown or special characters. This format ensures compatibility with JSON API endpoints.
 `;
 
+const describeSystemPromptCharacteristics = `
+Analyze the provided image of a role-playing game character and extract the following characteristics, returning them in a JSON object format:
+
+{
+  "Form": "Humanoid or Non-Humanoid",
+  "Gender": "Male, Female, Non-Binary, etc.",
+  "Age": "Approximate age range (e.g., 25-30)",
+  "Height": "Tall, Average, Short",
+  "Build": "Slim, Athletic, Heavyset, etc.",
+  "SkinTone": "Light, Fair, Medium, Olive, Dark",
+  "Hair": {
+    "Color": "Specify color",
+    "Length": "Short, Medium, Long",
+    "Style": "Curly, Straight, Wavy, etc."
+  },
+  "Eyes": {
+    "Color": "Blue, Black, Brown, etc.",
+    "Shape": "Almond, Round, etc."
+  },
+  "FacialFeatures": {
+    "Mole": "Specify location (e.g., LeftCheek)"
+  },
+  "Clothing": {
+    "Style": "Medieval, Modern, Futuristic, etc.",
+    "Details": "Armor, Robes, Casual, etc.",
+    "Footwear": "Boots, Sandals, etc.",
+    "Accessory": "Jewelry, Weapons, etc."
+  },
+  "AdditionalFeatures": {
+    "Tattoo": "Describe if any",
+    "Aura": "Describe if any"
+  }
+}
+
+The response should be concise, limited to the specified characteristics, and compatible with JSON API endpoints.
+`;
+
+const characteristics = `
+Form: Humanoid, Non-Humanoid
+Gender: Male, female, non-binary, etc.
+Age: 20 to 30 years.
+Height: Tall or not.
+Build: Slim or not.
+Skin Tone: Light, fair, medium, olive, dark.
+Hair: Color, length, style (e.g., black, long, curly).
+Eyes: Color(blue, black, brown, etc), shape (almond-shaped, etc).
+Facial Features: Distinctive marks, facial hair, scars, freckles.
+Clothing and Accessories: Style, details, footwear, accessories, weaponry (if applicable).
+Additional Features(Optional): Tattoos, Wings or Tails, Magic or Aura
+`;
+
 async function describeImage(imgUrl, title, imagegen_ledger) {
   try {
     const response = await openai.chat.completions.create({
@@ -273,7 +324,7 @@ async function describeImage(imgUrl, title, imagegen_ledger) {
       messages: [
         {
           role: "system",
-          content: describeSystemPrompt,
+          content: describeSystemPromptCharacteristics,
         },
         {
           role: "user",
