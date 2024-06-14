@@ -18,7 +18,12 @@ const openai = new OpenAI({
 
 const sleep = promisify(setTimeout);
 
-async function createAndMonitorRun(threadId, assistantId, imageDescription) {
+async function createAndMonitorRun(
+  threadId,
+  assistantId,
+  imageDescription,
+  userMessage
+) {
   console.log(
     "Creating and monitoring run for thread:",
     threadId,
@@ -48,7 +53,7 @@ async function createAndMonitorRun(threadId, assistantId, imageDescription) {
         console.log("Run", run.id, "requires action");
 
         const { toolOutputs, generatedImageDescriptionData, imageUrlData } =
-          await handleRequiredActions(run, imageDescription);
+          await handleRequiredActions(run, imageDescription, userMessage);
 
         console.log("[handleRequiredActions] Response:", {
           generatedImageDescriptionData,
@@ -80,7 +85,7 @@ async function createAndMonitorRun(threadId, assistantId, imageDescription) {
   }
 }
 
-async function handleRequiredActions(run, imageDescription) {
+async function handleRequiredActions(run, imageDescription, userMessage) {
   console.log("Handling required actions for run:", run.id);
   let toolOutputs = [];
   let generatedImageDescriptionData;
@@ -88,6 +93,8 @@ async function handleRequiredActions(run, imageDescription) {
   let imagegen_ledger = imageDescription
     ? { description: imageDescription }
     : {};
+
+  imagegen_ledger["userMessage"] = userMessage;
 
   console.log(run.id, "requires actions");
   console.log("All runs", run.required_action.submit_tool_outputs.tool_calls);
@@ -125,7 +132,7 @@ async function handleRequiredActions(run, imageDescription) {
         prompt,
         imagegen_ledger
       );
-      const imageUrl = await generateImageConsistent(prompt, imagegen_ledger);
+      const imageUrl = await generateImageConsistent(imagegen_ledger);
       console.log("Consistent Image URL:", imageUrl);
       toolOutputs.push({
         tool_call_id: tool_call.id,
@@ -208,7 +215,12 @@ async function processThread(req, res, next) {
     });
 
     const { run, generatedImageDescription, imageUrl } =
-      await createAndMonitorRun(thread.id, assistantId, imageDescription);
+      await createAndMonitorRun(
+        thread.id,
+        assistantId,
+        imageDescription,
+        message
+      );
     console.log("[createAndMonitorRun]", {
       generatedImageDescription,
       imageUrl,
@@ -320,7 +332,7 @@ async function describeImage(imgUrl, title, imagegen_ledger) {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
-      temperature: 0.2,
+      temperature: 0.1,
       messages: [
         {
           role: "system",
@@ -376,14 +388,19 @@ async function generateImage(prompt, n = 1, size = "1024x1024") {
 }
 
 async function generateImageConsistent(
-  prompt,
   imagegen_ledger,
   n = 1,
   size = "1024x1024"
 ) {
-  const imagegen_ledger_consistent = imagegen_ledger || { description: "" };
+  const imagegen_ledger_consistent = imagegen_ledger || {
+    description: "",
+    userMessage: null,
+  };
   try {
-    const adjustedPrompt = prompt + imagegen_ledger_consistent["description"];
+    // const adjustedPrompt = prompt + imagegen_ledger_consistent["description"];
+    const adjustedPrompt =
+      imagegen_ledger_consistent["userMessage"] +
+      imagegen_ledger_consistent["description"];
     console.log("Generating image consistently:", adjustedPrompt);
     const response = await openai.images.generate({
       model: "dall-e-3",
