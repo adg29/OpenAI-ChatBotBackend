@@ -319,7 +319,7 @@ Additional Features(Optional): Tattoos, Wings or Tails, Magic or Aura
 async function describeImage(imgUrl, title, imagegen_ledger) {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo-0125",
+      model: "gpt-4o",
       temperature: 0.2,
       messages: [
         {
