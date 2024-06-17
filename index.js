@@ -266,7 +266,7 @@ Provide a detailed description of a role-playing game character, focusing on key
 `;
 
 const describeSystemPromptCharacteristics = `
-Analyze the provided image of a role-playing game character and extract the following characteristics, returning them in a JSON object format:
+Analyze the provided image of a role-playing game character and extract the following characteristics, returning them in a string object format:
 
 {
   Form: Humanoid/Non-Humanoid,
