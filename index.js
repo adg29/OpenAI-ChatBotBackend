@@ -269,35 +269,26 @@ const describeSystemPromptCharacteristics = `
 Analyze the provided image of a role-playing game character and extract the following characteristics, returning them in a JSON object format:
 
 {
-  "Form": "Humanoid or Non-Humanoid",
-  "Gender": "Male, Female, Non-Binary, etc.",
-  "Age": "Approximate age range (e.g., 25-30)",
-  "Height": "Tall, Average, Short",
-  "Build": "Slim, Athletic, Heavyset, etc.",
-  "SkinTone": "Light, Fair, Medium, Olive, Dark",
-  "Hair": {
-    "Color": "Specify color",
-    "Length": "Short, Medium, Long",
-    "Style": "Curly, Straight, Wavy, etc."
+  Form: Humanoid/Non-Humanoid,
+  Gender: Male/Female/Non-Binary, etc.,
+  Age: Approximate age range (25-30),
+  Height: Tall/Average/Short,
+  Build: Slim/Athletic/Heavyset, etc.,
+  SkinTone: Light/Fair/Medium/Olive/Dark, etc.,
+  Eyes: Blue/Black/Brown, etc.,
+  Hair: {
+    Color: Black/Brunette/Blond/Red/White etc.,
+    Length: Short/Medium/Long,
+    Style: Curly/Straight/Wavy, etc.
   },
-  "Eyes": {
-    "Color": "Blue, Black, Brown, etc.",
-    "Shape": "Almond, Round, etc."
+  FacialFeatures: Mole/Scar/Freckels(Specify location)
+  Clothing: {
+    Style: Medieval/Modern/Futuristic, etc.,
+    Details: Armor/Robes/Casual, etc.,
+    Footwear: Boots/Sandals, etc.,
+    Accessory: Jewelry/Weapons, etc.
   },
-  "FacialFeatures": {
-    "Mole": "Specify location (e.g., LeftCheek)"
-  },
-  "Clothing": {
-    "Style": "Medieval, Modern, Futuristic, etc.",
-    "Details": "Armor, Robes, Casual, etc.",
-    "Footwear": "Boots, Sandals, etc.",
-    "Accessory": "Jewelry, Weapons, etc."
-  },
-  "AdditionalFeatures": {
-    "Tattoo": "Describe if any",
-    "Aura": "Describe if any"
-  }
-}
+  AdditionalFeatures: Tattoo/Wings/Tails/Magic/Aura/None(Describe if any)
 
 The response should be concise, limited to the specified characteristics, and compatible with JSON API endpoints.
 `;
