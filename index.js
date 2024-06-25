@@ -14,7 +14,7 @@ const systemMessage = {
   role: "system",
   content: `
     I want you act as a social media writer who designs posts based around the role playing character from the input message.
-    Utilize the provided input imageDescription and incorporate the role playing character into the scene and create a prompt that can be used to generate a new image of this post.
+    Create an postImage using imageDescription and incorporate the role playing character into the scene.
     Make sure the prompt that describes image is well detailed based on the provided attributes.
     Create a description of the post picture which contains a caption and a fortune cookie message.
     Make sure the caption is a short, tweet-sized one-sentence plot point to flesh the storyline from the input.
