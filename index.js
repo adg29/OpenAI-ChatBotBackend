@@ -13,20 +13,21 @@ const openai = new OpenAI({
 const systemMessage = {
   role: "system",
   content: `
-    You are a narrative designer who designs posts (a caption and a fortune cookie message).
-    Make sure the caption is a short, tweet-sized one-sentence plot point to flesh out an existing storyline.
-    Make sure that the fortune cookie message is in the format of a social post like Instagram with a limit of 60 words.
-    Assign a catchy name to this post.
-    Utilize the provided imageDescription and incorporate the post's scene/setting to create a prompt that can be used to generate images.
+    I want you act as a social media writer who designs posts based around the role playing character from the input message.
+    Utilize the provided input imageDescription and incorporate the role playing character into the scene and create a prompt that can be used to generate a new image of this post.
     Make sure the prompt that describes image is well detailed based on the provided attributes.
+    Create a description of the post picture which contains a caption and a fortune cookie message.
+    Make sure the caption is a short, tweet-sized one-sentence plot point to flesh the storyline from the input.
+    Make sure that the fortune cookie message is in the format of a social post like Instagram with a limit of 60 words.
+    Assign a catchy name to this post and include the caption and fortune cookie message in description.
     Provide the output in JSON structure like this {"name": "<name>", "description": "<caption, fortune-cookie>", "postImage": "<prompt>"}.
   `,
 };
 
 app.post("/api/chat", async (req, res) => {
   try {
-    const userMessage = req.body.message;
-    const imageDescription = req.body.imageDescription;
+    const userMessage = toString(req.body.message);
+    const imageDescription = toString(req.body.imageDescription);
 
     // Combine user message and image description
     const combinedMessage = `${userMessage} ${imageDescription}`;
