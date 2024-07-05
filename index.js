@@ -184,13 +184,26 @@ async function retrieveAssistantMessages(threadId) {
 }
 
 async function processThread(req, res, next) {
-  const { message, assistant, threadId, imageDescription } = req.body;
+  const {
+    message,
+    assistant,
+    threadId,
+    imageDescription,
+    imageBase64,
+    roleDescription,
+  } = req.body;
   console.log("message", message);
 
   console.log("[Received request]", req.body);
 
-  if (assistant === "posts" && !imageDescription) {
-    next(Error("imageDescription required for posts"));
+  if (assistant === "posts" && imageBase64 && roleDescription) {
+    const roleImageDescription = await describeImageBase64(imageBase64);
+    console.log("roleImageDescription", roleImageDescription);
+    const imageGenResponse = await generateImage(
+      `Generate an image with a subject using these characteristics: <subject-characteristics>${roleDescription}</subject-characteristics>. The subject should be in an environment with these characteristics: <environment-characteristics> ${roleImageDescription}</environment-characteristics>`
+    );
+    console.log("imageGenResponse", imageGenResponse);
+    res.json({ postImage: imageGenResponse });
     return;
   }
 
@@ -271,6 +284,24 @@ Form(Humanoid/Non-Humanoid), Gender(Male/Female/Non-Binary, etc.),Approximate ag
 The response should be concise, limited to the specified characteristics.
 `;
 
+const describeEnvPrompt = `
+Analyze the provided image of an environment and extract the following characteristics, returning them in a string format:
+
+Setting Type (Forest/Desert/Urban/Village/Castle, etc.)
+Time of Day (Day/Dawn/Dusk/Night)
+Weather (Sunny/Cloudy/Rainy/Snowy/Foggy, etc.)
+Lighting (Bright/Dim/Dark, etc.)
+Terrain (Flat/Hilly/Mountainous/Waterfront, etc.)
+Vegetation (Dense/Sparse/None, etc.)
+Structures (Buildings/Huts/Ruins, etc.)
+Dominant Colors (Green/Brown/Gray, etc.)
+Atmosphere (Serene/Chaotic/Mysterious, etc.)
+Notable Features (Rivers/Trees/Statues/Roads, etc.)
+Sound Elements (Birds Chirping/Water Flowing/Wind Blowing, etc.)
+Additional Details (Fog/Haze/Shadows, etc.)
+Composition (Framing, Location, Materials, Style, etc.)
+The response should be concise, limited to the specified characteristics. Do not describe any subjects, people or animals.`;
+
 const characteristics = `
 Form: Humanoid, Non-Humanoid
 Gender: Male, female, non-binary, etc.
@@ -321,6 +352,39 @@ async function describeImage(imgUrl, title, imagegen_ledger) {
     return image_description;
   } catch (error) {
     console.error("Failed to describe image:", error);
+    throw error;
+  }
+}
+
+async function describeImageBase64(imgUrl) {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      temperature: 0.2,
+      messages: [
+        {
+          role: "system",
+          content: describeEnvPrompt,
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image_url: {
+                url: imgUrl,
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    image_description = response.choices[0].message.content;
+
+    return image_description;
+  } catch (error) {
+    console.error("Failed to describe image from base 64:", error);
     throw error;
   }
 }
