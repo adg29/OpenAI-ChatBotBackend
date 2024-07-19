@@ -5,6 +5,15 @@ const { default: OpenAI } = require("openai");
 const app = express();
 env.config();
 app.use(express.json());
+// Middleware to catch JSON parsing errors
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
+    console.error(`JSON Syntax Error: ${err.message}`);
+    console.error(`Request Body: ${req.rawBody}`);
+    return res.status(400).send({ status: 400, message: "Invalid JSON" });
+  }
+  next();
+});
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -26,8 +35,8 @@ const systemMessage = {
 
 app.post("/api/chat", async (req, res) => {
   try {
-    const userMessage = toString(req.body.message);
-    const imageDescription = toString(req.body.imageDescription);
+    const userMessage = req.body.message;
+    const imageDescription = req.body.imageDescription;
 
     // Combine user message and image description
     const combinedMessage = `${userMessage} ${imageDescription}`;
@@ -47,12 +56,18 @@ app.post("/api/chat", async (req, res) => {
     if (response && response.choices && response.choices.length > 0) {
       let content;
       try {
+        console.log(
+          "response.choices[0].message.content",
+          response.choices[0].message.content
+        );
         content = JSON.parse(response.choices[0].message.content);
+        console.log("content", content);
       } catch (parseError) {
         throw new Error(`Parsing response failed: ${parseError.message}`);
       }
 
       // Generate image URL
+      console.log("content.postImage", content.postImage);
       const imageUrl = await generateImage(content.postImage);
 
       const formattedContent = {
